@@ -904,109 +904,147 @@
     }
 
     function renderTimeline() {
-      const now = new Date();
-      now.setHours(0, 0, 0, 0);
-      
-      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
-                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-      
-      document.getElementById('timelineMonth').textContent = 
-        `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  
+  const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
+                     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+  
+  document.getElementById('timelineMonth').textContent = 
+    `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-      const daysContainer = document.getElementById('timelineDays');
-      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-      
-      let daysHTML = '';
-      
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(now);
-        date.setDate(date.getDate() + i);
-        
-        daysHTML += `
-          <div class="timeline-day">
-            <div class="timeline-day-num">${date.getDate()}</div>
-            <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
-          </div>
-        `;
-      }
-      daysContainer.innerHTML = daysHTML;
+  // ===== RENDER PRÓXIMOS 7 DIAS =====
+  const daysContainer = document.getElementById('timelineDays');
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  
+  let daysHTML = '';
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + i);
+    
+    daysHTML += `
+      <div class="timeline-day">
+        <div class="timeline-day-num">${date.getDate()}</div>
+        <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
+      </div>
+    `;
+  }
+  daysContainer.innerHTML = daysHTML;
 
-      const upcomingProjects = filteredProjects
-        .filter(p => {
-          if (!p.startDate) return false;
-          
-          const projectDate = parseDateLocal(p.startDate);
-          if (!projectDate || isNaN(projectDate)) return false;
-          
-          projectDate.setHours(0, 0, 0, 0);
-          
-          const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
-          
-          const status = (p.status || '').toLowerCase();
-          const isNotFinished = !status.includes('finalizada') && 
-                               !status.includes('concluída');
-          
-          return diffDays >= 0 && diffDays <= 6 && isNotFinished;
-        })
-        .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
-        .slice(0, 8);
-
-      const projectsContainer = document.getElementById('timelineProjects');
+  // ===== RENDER PROJETOS PRÓXIMOS =====
+  const upcomingProjects = filteredProjects
+    .filter(p => {
+      if (!p.startDate) return false;
       
-      if (upcomingProjects.length === 0) {
-        projectsContainer.innerHTML = `
-          <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
-            Nenhum projeto programado para os próximos 7 dias.
-          </p>
-        `;
-        return;
-      }
+      const projectDate = parseDateLocal(p.startDate);
+      if (!projectDate || isNaN(projectDate)) return false;
+      
+      projectDate.setHours(0, 0, 0, 0);
+      
+      // Pega projetos que começam nos próximos 7 dias
+      const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
+      
+      // Não mostrar concluídas/finalizadas
+      const status = (p.status || '').toLowerCase();
+      const isNotFinished = !status.includes('finalizada') && 
+                           !status.includes('concluída');
+      
+      return diffDays >= 0 && diffDays <= 6 && isNotFinished;
+    })
+    .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
+    .slice(0, 8);
 
-      projectsContainer.innerHTML = upcomingProjects.map(p => {
-        const projectDate = parseDateLocal(p.startDate);
-        projectDate.setHours(0, 0, 0, 0);
-        
-        const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
-        const duration = 3;
-        const endIndex = Math.min(dayIndex + duration, 6);
-        const gridColumnStart = dayIndex + 1;
-        const gridColumnEnd = endIndex + 2;
-        
-        return `
-          <div class="timeline-project-row" style="
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: var(--space-2);
-            margin-bottom: var(--space-3);
+  const projectsContainer = document.getElementById('timelineProjects');
+  
+  if (upcomingProjects.length === 0) {
+    projectsContainer.innerHTML = `
+      <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
+        Nenhum projeto programado para os próximos 7 dias.
+      </p>
+    `;
+    return;
+  }
+
+  console.log('📅 Projetos na timeline:', upcomingProjects.map(p => ({
+    id: p.id,
+    client: p.client,
+    date: p.startDate,
+    parsed: parseDateLocal(p.startDate).toLocaleDateString('pt-BR')
+  })));
+
+  // Criar grid com posicionamento
+  projectsContainer.innerHTML = upcomingProjects.map(p => {
+    const projectDate = parseDateLocal(p.startDate);
+    projectDate.setHours(0, 0, 0, 0);
+    
+    // Calcular em qual coluna (dia) o projeto começa
+    const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
+    
+    // Assumir duração de 3 dias
+    const duration = 3;
+    const endIndex = Math.min(dayIndex + duration, 6);
+    
+    // Calcular largura e posição no grid
+    const gridColumnStart = dayIndex + 1;
+    const gridColumnEnd = endIndex + 2;
+    
+    // Truncar nome do cliente se for muito longo
+    const clientName = p.client || 'Cliente não informado';
+    const shortClientName = clientName.length > 30 
+      ? clientName.substring(0, 30) + '...' 
+      : clientName;
+    
+    return `
+      <div class="timeline-project-row" style="
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+      ">
+        <div class="timeline-project-bar" style="
+          grid-column: ${gridColumnStart} / ${gridColumnEnd};
+          background: var(--gauss-green-100);
+          border-left: 3px solid var(--gauss-green);
+          border-radius: var(--radius-sm);
+          padding: var(--space-2) var(--space-3);
+          position: relative;
+          transition: all 0.2s;
+          cursor: pointer;
+        " onmouseover="this.style.background='var(--gauss-green-300)'" 
+           onmouseout="this.style.background='var(--gauss-green-100)'"
+           title="${clientName}">
+          <div style="
+            font-family: var(--font-mono);
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            color: var(--gauss-green-900);
+            margin-bottom: 2px;
           ">
-            <div class="timeline-project-bar" style="
-              grid-column: ${gridColumnStart} / ${gridColumnEnd};
-              background: var(--gauss-green-100);
-              border-left: 3px solid var(--gauss-green);
-              border-radius: var(--radius-sm);
-              padding: var(--space-2) var(--space-3);
-              position: relative;
-            ">
-              <div style="
-                font-family: var(--font-mono);
-                font-size: var(--fs-xs);
-                font-weight: 700;
-                color: var(--gauss-green-900);
-                margin-bottom: 2px;
-              ">
-                Projeto ${p.id || 'S/N'}
-              </div>
-              <div style="
-                font-size: var(--fs-xs);
-                color: var(--fg-2);
-              ">
-                ${p.status || 'Sem status'}
-              </div>
-            </div>
+            ${p.id || 'S/N'}
           </div>
-        `;
-      }).join('');
-    }
+          <div style="
+            font-size: var(--fs-xs);
+            color: var(--fg-1);
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          ">
+            ${shortClientName}
+          </div>
+          <div style="
+            font-size: var(--fs-xs);
+            color: var(--fg-2);
+          ">
+            ${p.status || 'Sem status'}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
 
     // ==========================================
     // FILTER & SEARCH
@@ -1096,6 +1134,13 @@
     // ==========================================
 
     loadData();
+
+    // Atualizar automaticamente a cada 5 minutos
+setInterval(() => {
+  console.log('🔄 Atualizando dados automaticamente...');
+  loadData();
+}, 5 * 60 * 1000); // 5 minutos
+    
   </script>
 </body>
 </html>
