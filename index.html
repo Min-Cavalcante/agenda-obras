@@ -738,6 +738,8 @@
         console.log('✅ Dados recebidos:', data.length, 'itens');
         
         projectsData = data.map(item => item.json || item);
+
+        projectsData.reverse(); // Inverte a ordem: últimos adicionados aparecem primeiro
         
         console.log('📊 Dados processados:', projectsData.length, 'projetos');
         console.log('📋 Primeiro projeto:', projectsData[0]);
