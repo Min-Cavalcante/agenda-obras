@@ -969,9 +969,14 @@
   console.log('📅 Projetos na timeline:', upcomingProjects.map(p => ({
     id: p.id,
     client: p.client,
-    date: p.startDate,
-    parsed: parseDateLocal(p.startDate).toLocaleDateString('pt-BR')
+    team: p.team,
+    date: p.startDate
   })));
+
+  // ===== CONFIGURAÇÃO DA DURAÇÃO =====
+  // Para mostrar apenas no dia de início, mude para: const duration = 1;
+  // Para mostrar por 3 dias (padrão), deixe: const duration = 3;
+  const duration = 2;
 
   // Criar grid com posicionamento
   projectsContainer.innerHTML = upcomingProjects.map(p => {
@@ -981,9 +986,8 @@
     // Calcular em qual coluna (dia) o projeto começa
     const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
     
-    // Assumir duração de 3 dias
-    const duration = 3;
-    const endIndex = Math.min(dayIndex + duration, 6);
+    // Calcular duração
+    const endIndex = Math.min(dayIndex + duration - 1, 6);
     
     // Calcular largura e posição no grid
     const gridColumnStart = dayIndex + 1;
@@ -991,9 +995,11 @@
     
     // Truncar nome do cliente se for muito longo
     const clientName = p.client || 'Cliente não informado';
-    const shortClientName = clientName.length > 30 
-      ? clientName.substring(0, 30) + '...' 
+    const shortClientName = clientName.length > 25 
+      ? clientName.substring(0, 25) + '...' 
       : clientName;
+    
+    const teamName = p.team || 'Não informada';
     
     return `
       <div class="timeline-project-row" style="
@@ -1013,30 +1019,53 @@
           cursor: pointer;
         " onmouseover="this.style.background='var(--gauss-green-300)'" 
            onmouseout="this.style.background='var(--gauss-green-100)'"
-           title="${clientName}">
+           title="${clientName} - ${teamName}">
+          
+          <!-- Linha 1: Código + Cliente -->
           <div style="
-            font-family: var(--font-mono);
-            font-size: var(--fs-xs);
-            font-weight: 700;
-            color: var(--gauss-green-900);
-            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
           ">
-            ${p.id || 'S/N'}
+            <span style="
+              font-family: var(--font-mono);
+              font-size: var(--fs-xs);
+              font-weight: 700;
+              color: var(--gauss-green-900);
+              white-space: nowrap;
+            ">
+              ${p.id || 'S/N'}
+            </span>
+            <span style="
+              font-size: var(--fs-xs);
+              color: var(--fg-1);
+              font-weight: 600;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            ">
+              ${shortClientName}
+            </span>
           </div>
+          
+          <!-- Linha 2: Equipe -->
           <div style="
             font-size: var(--fs-xs);
-            color: var(--fg-1);
-            font-weight: 600;
+            color: var(--fg-2);
             margin-bottom: 2px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
           ">
-            ${shortClientName}
+            👷 ${teamName}
           </div>
+          
+          <!-- Linha 3: Status -->
           <div style="
             font-size: var(--fs-xs);
-            color: var(--fg-2);
+            color: var(--fg-3);
+            font-style: italic;
           ">
             ${p.status || 'Sem status'}
           </div>
