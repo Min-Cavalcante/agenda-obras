@@ -516,180 +516,80 @@
 
   <script>
     // ==========================================
-    // DATA STRUCTURE (será substituído pela API do n8n)
-    // ==========================================
+// DATA STRUCTURE E API
+// ==========================================
+
+let projectsData = [];
+let filteredProjects = [];
+let currentRegion = 'todas';
+
+// SUBSTITUA ESTA URL PELA URL DO SEU WEBHOOK N8N
+const N8N_WEBHOOK_URL = 'https://SEU-N8N.app.n8n.cloud/webhook/gauss-obras';
+
+// Função para carregar dados da API n8n
+async function loadData() {
+  const grid = document.getElementById('projectsGrid');
+  
+  // Mostra loading
+  grid.innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Carregando obras...</p>
+    </div>
+  `;
+  
+  try {
+    console.log('Buscando dados do n8n...');
+    const response = await fetch(N8N_WEBHOOK_URL);
     
-    let projectsData = [];
-    let filteredProjects = [];
-    let currentRegion = 'todas';
-
-    // Função para carregar dados (mock — será substituída pela API)
-    async function loadData() {
-      // Simula delay de API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // DADOS MOCK — substitua pela chamada ao n8n
-      projectsData = [
-        // Salvador
-        {
-          id: '14310',
-          region: 'salvador',
-          client: 'Elismario Souza De Oliveira Filho',
-          city: 'Alagoinhas',
-          status: 'Finalizada',
-          startDate: '2024-01-15',
-          vendor: 'Ryan',
-          team: 'Gauss',
-          modules: '585',
-          qty: '8',
-          inverter: 'Huawei 3k',
-          roof: 'Cerâmico',
-          notes: ''
-        },
-        {
-          id: '14371',
-          region: 'salvador',
-          client: 'Roberto Gaudencio Oliveira Canário',
-          city: 'Camaçari',
-          status: 'Finalizada',
-          startDate: '2024-02-01',
-          vendor: 'Bruna',
-          team: 'Gauss',
-          modules: '615',
-          qty: '10',
-          inverter: 'Huawei 6k',
-          roof: 'Fibrocimento',
-          notes: ''
-        },
-        {
-          id: '15332-F',
-          region: 'salvador',
-          client: 'Andrea Abbehusen Alves',
-          city: 'Muritiba',
-          status: 'Programada',
-          startDate: '2025-01-20',
-          vendor: 'Matheus',
-          team: 'NEP 2k',
-          modules: '620',
-          qty: '18',
-          inverter: 'CSI-7K',
-          roof: 'Metálico',
-          notes: ''
-        },
-        {
-          id: '15260-F',
-          region: 'salvador',
-          client: 'Arenilton Paulo dos Santos',
-          city: 'Salvador',
-          status: 'Em andamento',
-          startDate: '2025-01-10',
-          vendor: 'Bruna',
-          team: 'CSI-7.5K',
-          modules: '660',
-          qty: '10',
-          inverter: 'CSI-7.5K',
-          roof: 'Laje',
-          notes: 'Pendente arranjo'
-        },
-        {
-          id: '15463-F',
-          region: 'salvador',
-          client: 'Elcio do Amparo Reis',
-          city: 'Salvador',
-          status: 'Em andamento',
-          startDate: '2025-01-18',
-          vendor: 'Joaquim',
-          team: 'CSI-5K',
-          modules: '620',
-          qty: '8',
-          inverter: 'CSI-5K',
-          roof: 'Cerâmico',
-          notes: ''
-        },
-        
-        // Irecê
-        {
-          id: '14596',
-          region: 'irece',
-          client: 'José Carlos Oliveira de Carvalho',
-          city: 'Irecê',
-          status: 'Finalizada',
-          startDate: '2024-12-01',
-          vendor: 'Adriano',
-          team: 'Gauss',
-          modules: '620',
-          qty: '7',
-          inverter: 'CSI-5K',
-          roof: 'Fibrocimento',
-          notes: ''
-        },
-        {
-          id: '14541',
-          region: 'irece',
-          client: 'Maria Da Glória Dos Santos Ferreira',
-          city: 'Irecê',
-          status: 'Finalizada',
-          startDate: '2024-12-05',
-          vendor: 'Mauricio',
-          team: 'Adriano',
-          modules: '615',
-          qty: '52',
-          inverter: 'Symo 20 380V',
-          roof: 'Metálico',
-          notes: 'Ficou do cliente arrumar telhado antes'
-        },
-        {
-          id: '14626',
-          region: 'irece',
-          client: 'Brunna Quessia Soares de Miranda',
-          city: 'Irecê',
-          status: 'Liberada para inicio',
-          startDate: '2025-01-13',
-          vendor: 'Keila',
-          team: 'Keila',
-          modules: '620',
-          qty: '7',
-          inverter: 'CSI-5K',
-          roof: 'Cerâmico',
-          notes: 'Faltando inversor'
-        },
-        {
-          id: '14608',
-          region: 'irece',
-          client: 'Frutos de Goias - Agnaldo Sodré Queiroz',
-          city: 'Irecê',
-          status: 'Em andamento',
-          startDate: '2025-01-15',
-          vendor: 'João',
-          team: 'Adriano',
-          modules: '620',
-          qty: '132',
-          inverter: 'CSI-50K 380V',
-          roof: 'Solo',
-          notes: ''
-        },
-        {
-          id: '15554-F',
-          region: 'irece',
-          client: 'Naiara Loula Dourado Gomes',
-          city: 'Irecê',
-          status: 'Programada',
-          startDate: '2025-02-06',
-          vendor: 'Ryan',
-          team: 'Jani',
-          modules: '620',
-          qty: '10',
-          inverter: 'CSI-5K',
-          roof: 'Laje',
-          notes: ''
-        }
-      ];
-
-      filteredProjects = [...projectsData];
-      renderProjects();
-      updateKPIs();
-      renderTimeline();
+    if (!response.ok) {
+      throw new Error(`Erro HTTP: ${response.status}`);
     }
+    
+    const data = await response.json();
+    console.log('Dados recebidos:', data.length, 'projetos');
+    
+    // O n8n retorna um array de objetos com { json: {...} }
+    // Precisamos extrair apenas o conteúdo do json
+    projectsData = data.map(item => item.json || item);
+    
+    console.log('Dados processados:', projectsData.length, 'projetos');
+    console.log('Primeiro projeto:', projectsData[0]);
+    
+    filteredProjects = [...projectsData];
+    
+    renderProjects();
+    updateKPIs();
+    renderTimeline();
+    
+  } catch (error) {
+    console.error('Erro ao carregar obras:', error);
+    
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⚠️</div>
+        <h3 style="margin-bottom: var(--space-2);">Erro ao carregar obras</h3>
+        <p style="margin-bottom: var(--space-4);">${error.message}</p>
+        <button 
+          onclick="loadData()" 
+          style="
+            padding: var(--space-3) var(--space-5);
+            background: var(--gauss-green);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-display);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: var(--fs-body);
+          "
+        >
+          Tentar Novamente
+        </button>
+      </div>
+    `;
+  }
+}
 
     // ==========================================
     // RENDER FUNCTIONS
