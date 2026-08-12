@@ -685,48 +685,119 @@ async function loadData() {
       document.getElementById('kpiConcluida').textContent = concluida;
     }
 
-    function renderTimeline() {
-      const now = new Date();
-      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
-                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-      
-      document.getElementById('timelineMonth').textContent = 
-        `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    function function renderTimeline() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0); // Zera as horas para comparação de datas
+  
+  const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
+                     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+  
+  document.getElementById('timelineMonth').textContent = 
+    `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-      // Render próximos 7 dias
-      const daysContainer = document.getElementById('timelineDays');
-      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  // ===== RENDER PRÓXIMOS 7 DIAS =====
+  const daysContainer = document.getElementById('timelineDays');
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  
+  let daysHTML = '';
+  const weekDates = []; // Guardar as datas para posicionamento
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + i);
+    weekDates.push(date);
+    
+    daysHTML += `
+      <div class="timeline-day">
+        <div class="timeline-day-num">${date.getDate()}</div>
+        <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
+      </div>
+    `;
+  }
+  daysContainer.innerHTML = daysHTML;
+
+  // ===== RENDER PROJETOS PRÓXIMOS =====
+  const upcomingProjects = filteredProjects
+    .filter(p => {
+      if (!p.startDate) return false;
       
-      let daysHTML = '';
-      for (let i = 0; i < 7; i++) {
-        const date = new Date(now);
-        date.setDate(date.getDate() + i);
-        daysHTML += `
-          <div class="timeline-day">
-            <div class="timeline-day-num">${date.getDate()}</div>
-            <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
+      const projectDate = new Date(p.startDate);
+      projectDate.setHours(0, 0, 0, 0);
+      
+      // Pega projetos que começam nos próximos 7 dias
+      const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
+      
+      // Não mostrar concluídas/finalizadas
+      const isNotFinished = !p.status.toLowerCase().includes('finalizada') && 
+                           !p.status.toLowerCase().includes('concluída');
+      
+      return diffDays >= 0 && diffDays <= 6 && isNotFinished;
+    })
+    .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+    .slice(0, 8); // Limita a 8 projetos para não ficar muito cheio
+
+  const projectsContainer = document.getElementById('timelineProjects');
+  
+  if (upcomingProjects.length === 0) {
+    projectsContainer.innerHTML = `
+      <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
+        Nenhum projeto programado para os próximos 7 dias.
+      </p>
+    `;
+    return;
+  }
+
+  // Criar grid com posicionamento
+  projectsContainer.innerHTML = upcomingProjects.map(p => {
+    const projectDate = new Date(p.startDate);
+    projectDate.setHours(0, 0, 0, 0);
+    
+    // Calcular em qual coluna (dia) o projeto começa
+    const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
+    
+    // Assumir duração de 3 dias (pode ajustar depois)
+    const duration = 3;
+    const endIndex = Math.min(dayIndex + duration, 6);
+    
+    // Calcular largura e posição no grid
+    const gridColumnStart = dayIndex + 1; // CSS Grid começa em 1
+    const gridColumnEnd = endIndex + 2;
+    
+    return `
+      <div class="timeline-project-row" style="
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+      ">
+        <div class="timeline-project-bar" style="
+          grid-column: ${gridColumnStart} / ${gridColumnEnd};
+          background: var(--gauss-green-100);
+          border-left: 3px solid var(--gauss-green);
+          border-radius: var(--radius-sm);
+          padding: var(--space-2) var(--space-3);
+          position: relative;
+        ">
+          <div class="timeline-project-code" style="
+            font-family: var(--font-mono);
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            color: var(--gauss-green-900);
+            margin-bottom: 2px;
+          ">
+            Projeto ${p.id}
           </div>
-        `;
-      }
-      daysContainer.innerHTML = daysHTML;
-
-      // Render projetos próximos
-      const upcomingProjects = filteredProjects
-        .filter(p => {
-          const projectDate = new Date(p.startDate);
-          const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
-          return diffDays >= 0 && diffDays <= 7 && p.status !== 'Finalizada';
-        })
-        .slice(0, 4);
-
-      const projectsContainer = document.getElementById('timelineProjects');
-      projectsContainer.innerHTML = upcomingProjects.map(p => `
-        <div class="timeline-project">
-          <div class="timeline-project-code">Projeto ${p.id}</div>
-          <div class="timeline-project-status">${p.status}</div>
+          <div class="timeline-project-status" style="
+            font-size: var(--fs-xs);
+            color: var(--fg-2);
+          ">
+            ${p.status}
+          </div>
         </div>
-      `).join('') || '<p style="text-align: center; color: var(--fg-3);">Nenhum projeto programado para os próximos 7 dias.</p>';
-    }
+      </div>
+    `;
+  }).join('');
+}
 
     // ==========================================
     // FILTER & SEARCH
