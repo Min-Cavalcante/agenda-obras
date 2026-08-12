@@ -2,7 +2,7 @@
 
 const API_CONFIG = {
   // Substitua pela URL do webhook do n8n quando configurar
-  N8N_WEBHOOK_URL: 'https://n8n.gaussenergia.com.br/webhook-test/gauss-obras',
+  N8N_WEBHOOK_URL: 'https://n8n.gaussenergia.com.br/webhook/gauss-obras',
   
   // Headers padrão
   headers: {
