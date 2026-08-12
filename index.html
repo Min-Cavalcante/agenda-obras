@@ -185,6 +185,62 @@
       letter-spacing: 0.05em;
     }
 
+    /* Period Filter */
+    .period-filter {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+      padding: var(--space-4);
+      background: var(--bg-sunken);
+      border-radius: var(--radius-md);
+      flex-wrap: wrap;
+    }
+
+    .period-filter-label {
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      color: var(--fg-2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .period-filter select {
+      padding: var(--space-2) var(--space-3);
+      font-family: var(--font-body);
+      font-size: var(--fs-sm);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--fg-1);
+      cursor: pointer;
+      min-width: 120px;
+    }
+
+    .period-filter select:focus {
+      outline: none;
+      border-color: var(--gauss-green);
+    }
+
+    .period-filter-reset {
+      padding: var(--space-2) var(--space-4);
+      background: transparent;
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-display);
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      color: var(--fg-2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .period-filter-reset:hover {
+      background: var(--gauss-green);
+      color: white;
+      border-color: var(--gauss-green);
+    }
+
     /* Region Tabs */
     .region-tabs {
       display: flex;
@@ -245,6 +301,10 @@
     .project-card.expanded {
       grid-column: span 2;
       box-shadow: var(--shadow-md);
+    }
+
+    .project-card.has-pending {
+      border-left: 4px solid var(--signal-warn);
     }
 
     .project-header {
@@ -317,6 +377,38 @@
       margin-bottom: var(--space-3);
     }
 
+    .project-meta {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: var(--radius-xs);
+      font-size: var(--fs-xs);
+      font-weight: 600;
+    }
+
+    .meta-badge.material-sent {
+      background: #E6F5EA;
+      color: #1B5D24;
+    }
+
+    .meta-badge.material-pending {
+      background: #FFF4E6;
+      color: #B45F06;
+    }
+
+    .meta-badge.has-issue {
+      background: #FEE;
+      color: #B91C1C;
+    }
+
     .project-details {
       display: none;
       margin-top: var(--space-4);
@@ -345,6 +437,11 @@
 
     .detail-value {
       color: var(--fg-1);
+    }
+
+    .detail-value.alert {
+      color: var(--signal-warn);
+      font-weight: 600;
     }
 
     .empty-state {
@@ -377,6 +474,15 @@
       .timeline-days {
         grid-template-columns: repeat(7, 1fr);
         font-size: var(--fs-xs);
+      }
+
+      .period-filter {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .period-filter select {
+        width: 100%;
       }
 
       .projects-grid {
@@ -472,6 +578,30 @@
     </div>
   </div>
 
+  <!-- Period Filter -->
+  <div class="period-filter">
+    <span class="period-filter-label">Filtrar por Período:</span>
+    <select id="monthFilter">
+      <option value="">Todos os meses</option>
+      <option value="1">Janeiro</option>
+      <option value="2">Fevereiro</option>
+      <option value="3">Março</option>
+      <option value="4">Abril</option>
+      <option value="5">Maio</option>
+      <option value="6">Junho</option>
+      <option value="7">Julho</option>
+      <option value="8">Agosto</option>
+      <option value="9">Setembro</option>
+      <option value="10">Outubro</option>
+      <option value="11">Novembro</option>
+      <option value="12">Dezembro</option>
+    </select>
+    <select id="yearFilter">
+      <option value="">Todos os anos</option>
+    </select>
+    <button class="period-filter-reset" onclick="resetPeriodFilter()">Limpar Filtros</button>
+  </div>
+
   <!-- Region Tabs -->
   <div class="region-tabs">
     <button class="region-tab active" data-region="todas" onclick="filterByRegion('todas')">
@@ -501,44 +631,36 @@
     let projectsData = [];
     let filteredProjects = [];
     let currentRegion = 'todas';
+    let currentMonth = '';
+    let currentYear = '';
 
-    // SUBSTITUA ESTA URL PELA URL DO SEU WEBHOOK N8N
     const N8N_WEBHOOK_URL = 'https://n8n.gaussenergia.com.br/webhook/gauss-obras';
 
     // ==========================================
     // UTILITY FUNCTIONS
     // ==========================================
 
-    // Parsear data LOCAL (sem problema de timezone)
     function parseDateLocal(dateString) {
       if (!dateString) return null;
-      
-      // Se já é um objeto Date
       if (dateString instanceof Date) return dateString;
       
-      // Se está no formato ISO (YYYY-MM-DD)
       if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
         const parts = dateString.split('-');
-        // Criar data local (não UTC)
         return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       }
       
-      // Se está no formato brasileiro (DD/MM/YYYY)
       if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
         const parts = dateString.split('/');
         return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
       }
       
-      // Fallback: tentar criar date normal
       return new Date(dateString);
     }
 
     function formatDate(dateString) {
       if (!dateString) return 'Data não informada';
-      
       const date = parseDateLocal(dateString);
       if (!date || isNaN(date)) return 'Data inválida';
-      
       return date.toLocaleDateString('pt-BR', { 
         day: '2-digit', 
         month: '2-digit', 
@@ -548,13 +670,9 @@
 
     function toggleCard(card) {
       const wasExpanded = card.classList.contains('expanded');
-      
-      // Collapse all cards
       document.querySelectorAll('.project-card').forEach(c => {
         c.classList.remove('expanded');
       });
-
-      // Toggle current card
       if (!wasExpanded) {
         card.classList.add('expanded');
       }
@@ -568,6 +686,30 @@
       if (statusLower.includes('programada') || statusLower.includes('liberada')) return 'programada';
       if (statusLower.includes('pendencia') || statusLower.includes('aguardando')) return 'pendencia';
       return 'programada';
+    }
+
+    function populateYearFilter() {
+      const yearFilter = document.getElementById('yearFilter');
+      const currentYear = new Date().getFullYear();
+      const years = new Set();
+      
+      projectsData.forEach(p => {
+        if (p.startDate) {
+          const date = parseDateLocal(p.startDate);
+          if (date && !isNaN(date)) {
+            years.add(date.getFullYear());
+          }
+        }
+      });
+      
+      const sortedYears = Array.from(years).sort((a, b) => b - a);
+      
+      sortedYears.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearFilter.appendChild(option);
+      });
     }
 
     // ==========================================
@@ -595,7 +737,6 @@
         const data = await response.json();
         console.log('✅ Dados recebidos:', data.length, 'itens');
         
-        // O n8n retorna um array de objetos com { json: {...} }
         projectsData = data.map(item => item.json || item);
         
         console.log('📊 Dados processados:', projectsData.length, 'projetos');
@@ -603,6 +744,7 @@
         
         filteredProjects = [...projectsData];
         
+        populateYearFilter();
         renderProjects();
         updateKPIs();
         renderTimeline();
@@ -653,59 +795,87 @@
         return;
       }
 
-      grid.innerHTML = filteredProjects.map(project => `
-        <div class="project-card" onclick="toggleCard(this)">
-          <div class="project-header">
-            <div class="project-code">${project.id || 'S/N'}</div>
-            <div class="status-badge status-${normalizeStatus(project.status)}">
-              ${project.status || 'Sem status'}
-            </div>
-          </div>
-          
-          <div class="project-client">${project.client || 'Cliente não informado'}</div>
-          
-          <div class="project-city">
-            📍 ${project.city || 'Cidade não informada'}
-          </div>
-          
-          <div class="project-date" style="margin-bottom: var(--space-2);">
-            👷 Equipe: <strong>${project.team || 'Não informada'}</strong>
-          </div>
-          
-          <div class="project-date">
-            🗓 Início: ${formatDate(project.startDate)}
-          </div>
-
-          <div class="project-details">
-            <div class="detail-item">
-              <div class="detail-label">Vendedor</div>
-              <div class="detail-value">${project.vendor || 'Não informado'}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Equipe Responsável</div>
-              <div class="detail-value">${project.team || 'Não informada'}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Módulos</div>
-              <div class="detail-value">${project.modules || '—'} (${project.qty || '—'} un.)</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Inversor</div>
-              <div class="detail-value">${project.inverter || 'Não informado'}</div>
-            </div>
-            <div class="detail-item">
-              <div class="detail-label">Tipo de Telhado</div>
-              <div class="detail-value">${project.roof || 'Não informado'}</div>
-            </div>
-            ${project.notes ? `
-              <div class="detail-item" style="grid-column: span 2;">
-                <div class="detail-label">Observações</div>
-                <div class="detail-value">${project.notes}</div>
+      grid.innerHTML = filteredProjects.map(project => {
+        const hasPending = project.pendencia && project.pendencia.trim() !== '';
+        const materialSent = project.materialEnviado && 
+                           (project.materialEnviado.toLowerCase() === 'sim' || 
+                            project.materialEnviado.toLowerCase() === 's');
+        
+        return `
+          <div class="project-card ${hasPending ? 'has-pending' : ''}" onclick="toggleCard(this)">
+            <div class="project-header">
+              <div class="project-code">${project.id || 'S/N'}</div>
+              <div class="status-badge status-${normalizeStatus(project.status)}">
+                ${project.status || 'Sem status'}
               </div>
-            ` : ''}
+            </div>
+            
+            <div class="project-client">${project.client || 'Cliente não informado'}</div>
+            
+            <div class="project-city">
+              📍 ${project.city || 'Cidade não informada'}
+            </div>
+            
+            <div class="project-meta">
+              ${materialSent ? 
+                '<span class="meta-badge material-sent">✓ Material Enviado</span>' : 
+                '<span class="meta-badge material-pending">⏳ Material Pendente</span>'
+              }
+              ${hasPending ? 
+                '<span class="meta-badge has-issue">⚠️ Com Pendência</span>' : 
+                ''
+              }
+            </div>
+            
+            <div class="project-date" style="margin-bottom: var(--space-2);">
+              👷 Equipe: <strong>${project.team || 'Não informada'}</strong>
+            </div>
+            
+            <div class="project-date">
+              🗓 Início: ${formatDate(project.startDate)}
+            </div>
+
+            <div class="project-details">
+              <div class="detail-item">
+                <div class="detail-label">Vendedor</div>
+                <div class="detail-value">${project.vendor || 'Não informado'}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Equipe Responsável</div>
+                <div class="detail-value">${project.team || 'Não informada'}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Material Enviado</div>
+                <div class="detail-value">${materialSent ? '✓ Sim' : '✗ Não'}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Módulos</div>
+                <div class="detail-value">${project.modules || '—'} (${project.qty || '—'} un.)</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Inversor</div>
+                <div class="detail-value">${project.inverter || 'Não informado'}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Tipo de Telhado</div>
+                <div class="detail-value">${project.roof || 'Não informado'}</div>
+              </div>
+              ${hasPending ? `
+                <div class="detail-item" style="grid-column: span 2;">
+                  <div class="detail-label">⚠️ Pendência</div>
+                  <div class="detail-value alert">${project.pendencia}</div>
+                </div>
+              ` : ''}
+              ${project.notes ? `
+                <div class="detail-item" style="grid-column: span 2;">
+                  <div class="detail-label">Observações</div>
+                  <div class="detail-value">${project.notes}</div>
+                </div>
+              ` : ''}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function updateKPIs() {
@@ -743,7 +913,6 @@
       document.getElementById('timelineMonth').textContent = 
         `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-      // ===== RENDER PRÓXIMOS 7 DIAS =====
       const daysContainer = document.getElementById('timelineDays');
       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       
@@ -762,7 +931,6 @@
       }
       daysContainer.innerHTML = daysHTML;
 
-      // ===== RENDER PROJETOS PRÓXIMOS =====
       const upcomingProjects = filteredProjects
         .filter(p => {
           if (!p.startDate) return false;
@@ -772,10 +940,8 @@
           
           projectDate.setHours(0, 0, 0, 0);
           
-          // Pega projetos que começam nos próximos 7 dias
           const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
           
-          // Não mostrar concluídas/finalizadas
           const status = (p.status || '').toLowerCase();
           const isNotFinished = !status.includes('finalizada') && 
                                !status.includes('concluída');
@@ -796,29 +962,15 @@
         return;
       }
 
-      console.log('📅 Projetos na timeline:', upcomingProjects.map(p => ({
-        id: p.id,
-        date: p.startDate,
-        parsed: parseDateLocal(p.startDate).toLocaleDateString('pt-BR')
-      })));
-
-      // Criar grid com posicionamento
       projectsContainer.innerHTML = upcomingProjects.map(p => {
         const projectDate = parseDateLocal(p.startDate);
         projectDate.setHours(0, 0, 0, 0);
         
-        // Calcular em qual coluna (dia) o projeto começa
         const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
-        
-        // Assumir duração de 3 dias
         const duration = 3;
         const endIndex = Math.min(dayIndex + duration, 6);
-        
-        // Calcular largura e posição no grid
         const gridColumnStart = dayIndex + 1;
         const gridColumnEnd = endIndex + 2;
-        
-        console.log(`  → Projeto ${p.id}: dia ${dayIndex}, grid ${gridColumnStart}-${gridColumnEnd}`);
         
         return `
           <div class="timeline-project-row" style="
@@ -873,6 +1025,20 @@
       applyFilters();
     }
 
+    function filterByPeriod() {
+      currentMonth = document.getElementById('monthFilter').value;
+      currentYear = document.getElementById('yearFilter').value;
+      applyFilters();
+    }
+
+    function resetPeriodFilter() {
+      document.getElementById('monthFilter').value = '';
+      document.getElementById('yearFilter').value = '';
+      currentMonth = '';
+      currentYear = '';
+      applyFilters();
+    }
+
     function searchProjects(query) {
       applyFilters(query);
     }
@@ -882,6 +1048,23 @@
         // Filter by region
         const regionMatch = currentRegion === 'todas' || project.region === currentRegion;
         
+        // Filter by period
+        let periodMatch = true;
+        if (currentMonth || currentYear) {
+          if (project.startDate) {
+            const date = parseDateLocal(project.startDate);
+            if (date && !isNaN(date)) {
+              const monthMatch = !currentMonth || (date.getMonth() + 1) === parseInt(currentMonth);
+              const yearMatch = !currentYear || date.getFullYear() === parseInt(currentYear);
+              periodMatch = monthMatch && yearMatch;
+            } else {
+              periodMatch = false;
+            }
+          } else {
+            periodMatch = false;
+          }
+        }
+        
         // Filter by search
         const searchLower = searchQuery.toLowerCase();
         const searchMatch = !searchQuery || 
@@ -889,7 +1072,7 @@
           (project.client || '').toLowerCase().includes(searchLower) ||
           (project.city || '').toLowerCase().includes(searchLower);
 
-        return regionMatch && searchMatch;
+        return regionMatch && periodMatch && searchMatch;
       });
 
       renderProjects();
@@ -904,6 +1087,9 @@
     document.getElementById('searchInput').addEventListener('input', (e) => {
       searchProjects(e.target.value);
     });
+
+    document.getElementById('monthFilter').addEventListener('change', filterByPeriod);
+    document.getElementById('yearFilter').addEventListener('change', filterByPeriod);
 
     // ==========================================
     // INITIALIZE
