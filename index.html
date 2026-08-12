@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Obras — Gauss Energia</title>
+  <link rel="stylesheet" href="colors_and_type.css">
+  <style>
+    /* Reset & Layout */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-paper);
+      color: var(--fg-1);
+      padding: var(--space-6) var(--space-5);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--border-hairline);
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .logo-mark {
+      width: 40px;
+      height: 40px;
+      background: var(--gauss-green);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-wordmark);
+      font-size: 18px;
+      color: white;
+      font-weight: bold;
+    }
+
+    .header-title h1 {
+      font-size: var(--fs-h2);
+      font-weight: 700;
+      color: var(--fg-1);
+      margin: 0;
+    }
+
+    .header-title .subtitle {
+      font-size: var(--fs-sm);
+      color: var(--fg-3);
+      margin-top: 2px;
+    }
+
+    /* Search Bar */
+    .search-container {
+      margin-bottom: var(--space-6);
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      max-width: 600px;
+      padding: var(--space-3) var(--space-4);
+      padding-left: var(--space-7);
+      font-family: var(--font-body);
+      font-size: var(--fs-body);
+      border: 2px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      color: var(--fg-1);
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--gauss-green);
+      box-shadow: var(--shadow-glow-green);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      color: var(--fg-3);
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-7);
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      padding: var(--space-5);
+      box-shadow: var(--shadow-xs);
+      transition: all 0.2s;
+    }
+
+    .kpi-card:hover {
+      box-shadow: var(--shadow-sm);
+      border-color: var(--gauss-green-300);
+    }
+
+    .kpi-value {
+      font-family: var(--font-display);
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--gauss-green-900);
+      line-height: 1;
+      margin-bottom: var(--space-2);
+    }
+
+    .kpi-label {
+      font-size: var(--fs-sm);
+      color: var(--fg-3);
+      text-transform: uppercase;
+      letter-spacing: var(--tracking-wide);
+      font-weight: 600;
+    }
+
+    /* Timeline Section */
+    .timeline-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-bottom: var(--space-7);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .timeline-header {
+      text-align: center;
+      margin-bottom: var(--space-5);
+    }
+
+    .timeline-header h2 {
+      font-size: var(--fs-h2);
+      font-weight: 700;
+      color: var(--fg-1);
+      margin-bottom: var(--space-2);
+    }
+
+    .timeline-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: var(--space-2);
+      margin-bottom: var(--space-5);
+      text-align: center;
+    }
+
+    .timeline-day {
+      padding: var(--space-2);
+      background: var(--bg-sunken);
+      border-radius: var(--radius-sm);
+    }
+
+    .timeline-day-num {
+      font-weight: 700;
+      font-size: var(--fs-h4);
+      color: var(--fg-1);
+    }
+
+    .timeline-day-name {
+      font-size: var(--fs-xs);
+      color: var(--fg-3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .timeline-project {
+      padding: var(--space-3) var(--space-4);
+      margin-bottom: var(--space-3);
+      background: var(--bg-sunken);
+      border-left: 3px solid var(--gauss-green);
+      border-radius: var(--radius-sm);
+    }
+
+    .timeline-project-code {
+      font-family: var(--font-mono);
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      color: var(--gauss-green-900);
+      margin-bottom: var(--space-1);
+    }
+
+    .timeline-project-status {
+      font-size: var(--fs-sm);
+      color: var(--fg-2);
+    }
+
+    /* Region Tabs */
+    .region-tabs {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-5);
+      border-bottom: 2px solid var(--border-hairline);
+    }
+
+    .region-tab {
+      padding: var(--space-3) var(--space-5);
+      font-family: var(--font-display);
+      font-size: var(--fs-body);
+      font-weight: 600;
+      color: var(--fg-3);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .region-tab:hover {
+      color: var(--fg-1);
+    }
+
+    .region-tab.active {
+      color: var(--gauss-green-900);
+      border-bottom-color: var(--gauss-green);
+    }
+
+    /* Project Cards Grid */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+
+    .project-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: var(--radius-md);
+      padding: var(--space-5);
+      box-shadow: var(--shadow-xs);
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .project-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--gauss-green-300);
+      transform: translateY(-2px);
+    }
+
+    .project-card.expanded {
+      grid-column: span 2;
+      box-shadow: var(--shadow-md);
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-3);
+    }
+
+    .project-code {
+      font-family: var(--font-mono);
+      font-size: var(--fs-sm);
+      font-weight: 700;
+      color: var(--gauss-green-900);
+      background: var(--gauss-green-100);
+      padding: 4px 8px;
+      border-radius: var(--radius-xs);
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-finalizada {
+      background: #E6F5EA;
+      color: #1B5D24;
+    }
+
+    .status-andamento {
+      background: #FFF4E6;
+      color: #B45F06;
+    }
+
+    .status-programada {
+      background: #E8F4FF;
+      color: #1E40AF;
+    }
+
+    .status-pendencia {
+      background: #FEE;
+      color: #B91C1C;
+    }
+
+    .project-client {
+      font-size: var(--fs-h4);
+      font-weight: 700;
+      color: var(--fg-1);
+      margin-bottom: var(--space-2);
+      line-height: 1.3;
+    }
+
+    .project-city {
+      font-size: var(--fs-sm);
+      color: var(--fg-3);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .project-date {
+      font-size: var(--fs-sm);
+      color: var(--fg-2);
+      font-family: var(--font-mono);
+      margin-bottom: var(--space-3);
+    }
+
+    .project-details {
+      display: none;
+      margin-top: var(--space-4);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--border-hairline);
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3);
+    }
+
+    .project-card.expanded .project-details {
+      display: grid;
+    }
+
+    .detail-item {
+      font-size: var(--fs-sm);
+    }
+
+    .detail-label {
+      font-weight: 600;
+      color: var(--fg-3);
+      text-transform: uppercase;
+      font-size: var(--fs-xs);
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      color: var(--fg-1);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--fg-3);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: var(--space-3);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      body {
+        padding: var(--space-4) var(--space-3);
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .timeline-days {
+        grid-template-columns: repeat(7, 1fr);
+        font-size: var(--fs-xs);
+      }
+
+      .projects-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .project-card.expanded {
+        grid-column: span 1;
+      }
+
+      .project-details {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Loading State */
+    .loading {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--fg-3);
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--gauss-green-100);
+      border-top-color: var(--gauss-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto var(--space-3);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-logo">
+      <div class="logo-mark">G</div>
+      <div class="header-title">
+        <h1>Agenda de Obras</h1>
+        <div class="subtitle">Gestão de Projetos — Gauss Energia</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search -->
+  <div class="search-container">
+    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+    </svg>
+    <input 
+      type="text" 
+      class="search-input" 
+      id="searchInput"
+      placeholder="Buscar por código do projeto ou nome do cliente..."
+    >
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiTotal">—</div>
+      <div class="kpi-label">Obras Totais</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiProgramada">—</div>
+      <div class="kpi-label">Programadas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiAndamento">—</div>
+      <div class="kpi-label">Em Execução</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="kpiConcluida">—</div>
+      <div class="kpi-label">Concluídas</div>
+    </div>
+  </div>
+
+  <!-- Timeline Section -->
+  <div class="timeline-section">
+    <div class="timeline-header">
+      <h2 id="timelineMonth">JANEIRO 2025</h2>
+    </div>
+    <div class="timeline-days" id="timelineDays">
+      <!-- Dias serão inseridos via JS -->
+    </div>
+    <div id="timelineProjects">
+      <!-- Projetos do timeline serão inseridos via JS -->
+    </div>
+  </div>
+
+  <!-- Region Tabs -->
+  <div class="region-tabs">
+    <button class="region-tab active" data-region="todas" onclick="filterByRegion('todas')">
+      Todas as Regiões
+    </button>
+    <button class="region-tab" data-region="salvador" onclick="filterByRegion('salvador')">
+      Salvador
+    </button>
+    <button class="region-tab" data-region="irece" onclick="filterByRegion('irece')">
+      Irecê
+    </button>
+  </div>
+
+  <!-- Projects Grid -->
+  <div class="projects-grid" id="projectsGrid">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Carregando obras...</p>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // DATA STRUCTURE (será substituído pela API do n8n)
+    // ==========================================
+    
+    let projectsData = [];
+    let filteredProjects = [];
+    let currentRegion = 'todas';
+
+    // Função para carregar dados (mock — será substituída pela API)
+    async function loadData() {
+      // Simula delay de API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // DADOS MOCK — substitua pela chamada ao n8n
+      projectsData = [
+        // Salvador
+        {
+          id: '14310',
+          region: 'salvador',
+          client: 'Elismario Souza De Oliveira Filho',
+          city: 'Alagoinhas',
+          status: 'Finalizada',
+          startDate: '2024-01-15',
+          vendor: 'Ryan',
+          team: 'Gauss',
+          modules: '585',
+          qty: '8',
+          inverter: 'Huawei 3k',
+          roof: 'Cerâmico',
+          notes: ''
+        },
+        {
+          id: '14371',
+          region: 'salvador',
+          client: 'Roberto Gaudencio Oliveira Canário',
+          city: 'Camaçari',
+          status: 'Finalizada',
+          startDate: '2024-02-01',
+          vendor: 'Bruna',
+          team: 'Gauss',
+          modules: '615',
+          qty: '10',
+          inverter: 'Huawei 6k',
+          roof: 'Fibrocimento',
+          notes: ''
+        },
+        {
+          id: '15332-F',
+          region: 'salvador',
+          client: 'Andrea Abbehusen Alves',
+          city: 'Muritiba',
+          status: 'Programada',
+          startDate: '2025-01-20',
+          vendor: 'Matheus',
+          team: 'NEP 2k',
+          modules: '620',
+          qty: '18',
+          inverter: 'CSI-7K',
+          roof: 'Metálico',
+          notes: ''
+        },
+        {
+          id: '15260-F',
+          region: 'salvador',
+          client: 'Arenilton Paulo dos Santos',
+          city: 'Salvador',
+          status: 'Em andamento',
+          startDate: '2025-01-10',
+          vendor: 'Bruna',
+          team: 'CSI-7.5K',
+          modules: '660',
+          qty: '10',
+          inverter: 'CSI-7.5K',
+          roof: 'Laje',
+          notes: 'Pendente arranjo'
+        },
+        {
+          id: '15463-F',
+          region: 'salvador',
+          client: 'Elcio do Amparo Reis',
+          city: 'Salvador',
+          status: 'Em andamento',
+          startDate: '2025-01-18',
+          vendor: 'Joaquim',
+          team: 'CSI-5K',
+          modules: '620',
+          qty: '8',
+          inverter: 'CSI-5K',
+          roof: 'Cerâmico',
+          notes: ''
+        },
+        
+        // Irecê
+        {
+          id: '14596',
+          region: 'irece',
+          client: 'José Carlos Oliveira de Carvalho',
+          city: 'Irecê',
+          status: 'Finalizada',
+          startDate: '2024-12-01',
+          vendor: 'Adriano',
+          team: 'Gauss',
+          modules: '620',
+          qty: '7',
+          inverter: 'CSI-5K',
+          roof: 'Fibrocimento',
+          notes: ''
+        },
+        {
+          id: '14541',
+          region: 'irece',
+          client: 'Maria Da Glória Dos Santos Ferreira',
+          city: 'Irecê',
+          status: 'Finalizada',
+          startDate: '2024-12-05',
+          vendor: 'Mauricio',
+          team: 'Adriano',
+          modules: '615',
+          qty: '52',
+          inverter: 'Symo 20 380V',
+          roof: 'Metálico',
+          notes: 'Ficou do cliente arrumar telhado antes'
+        },
+        {
+          id: '14626',
+          region: 'irece',
+          client: 'Brunna Quessia Soares de Miranda',
+          city: 'Irecê',
+          status: 'Liberada para inicio',
+          startDate: '2025-01-13',
+          vendor: 'Keila',
+          team: 'Keila',
+          modules: '620',
+          qty: '7',
+          inverter: 'CSI-5K',
+          roof: 'Cerâmico',
+          notes: 'Faltando inversor'
+        },
+        {
+          id: '14608',
+          region: 'irece',
+          client: 'Frutos de Goias - Agnaldo Sodré Queiroz',
+          city: 'Irecê',
+          status: 'Em andamento',
+          startDate: '2025-01-15',
+          vendor: 'João',
+          team: 'Adriano',
+          modules: '620',
+          qty: '132',
+          inverter: 'CSI-50K 380V',
+          roof: 'Solo',
+          notes: ''
+        },
+        {
+          id: '15554-F',
+          region: 'irece',
+          client: 'Naiara Loula Dourado Gomes',
+          city: 'Irecê',
+          status: 'Programada',
+          startDate: '2025-02-06',
+          vendor: 'Ryan',
+          team: 'Jani',
+          modules: '620',
+          qty: '10',
+          inverter: 'CSI-5K',
+          roof: 'Laje',
+          notes: ''
+        }
+      ];
+
+      filteredProjects = [...projectsData];
+      renderProjects();
+      updateKPIs();
+      renderTimeline();
+    }
+
+    // ==========================================
+    // RENDER FUNCTIONS
+    // ==========================================
+
+    function renderProjects() {
+      const grid = document.getElementById('projectsGrid');
+      
+      if (filteredProjects.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <p>Nenhuma obra encontrada.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filteredProjects.map(project => `
+        <div class="project-card" onclick="toggleCard(this)">
+          <div class="project-header">
+            <div class="project-code">${project.id}</div>
+            <div class="status-badge status-${normalizeStatus(project.status)}">
+              ${project.status}
+            </div>
+          </div>
+          
+          <div class="project-client">${project.client}</div>
+          
+          <div class="project-city">
+            📍 ${project.city}
+          </div>
+          
+          <div class="project-date">
+            🗓 Início: ${formatDate(project.startDate)}
+          </div>
+
+          <div class="project-details">
+            <div class="detail-item">
+              <div class="detail-label">Vendedor</div>
+              <div class="detail-value">${project.vendor}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Equipe</div>
+              <div class="detail-value">${project.team}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Módulos</div>
+              <div class="detail-value">${project.modules} (${project.qty} un.)</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Inversor</div>
+              <div class="detail-value">${project.inverter}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Tipo de Telhado</div>
+              <div class="detail-value">${project.roof}</div>
+            </div>
+            ${project.notes ? `
+              <div class="detail-item" style="grid-column: span 2;">
+                <div class="detail-label">Observações</div>
+                <div class="detail-value">${project.notes}</div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateKPIs() {
+      const total = filteredProjects.length;
+      const programada = filteredProjects.filter(p => 
+        p.status.includes('Programada') || 
+        p.status.includes('Liberada') ||
+        p.status.includes('Aguardando')
+      ).length;
+      const andamento = filteredProjects.filter(p => 
+        p.status.includes('andamento') || 
+        p.status.includes('Em execução')
+      ).length;
+      const concluida = filteredProjects.filter(p => 
+        p.status.includes('Finalizada') ||
+        p.status.includes('Concluída')
+      ).length;
+
+      document.getElementById('kpiTotal').textContent = total;
+      document.getElementById('kpiProgramada').textContent = programada;
+      document.getElementById('kpiAndamento').textContent = andamento;
+      document.getElementById('kpiConcluida').textContent = concluida;
+    }
+
+    function renderTimeline() {
+      const now = new Date();
+      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
+                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+      
+      document.getElementById('timelineMonth').textContent = 
+        `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+
+      // Render próximos 7 dias
+      const daysContainer = document.getElementById('timelineDays');
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      
+      let daysHTML = '';
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + i);
+        daysHTML += `
+          <div class="timeline-day">
+            <div class="timeline-day-num">${date.getDate()}</div>
+            <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
+          </div>
+        `;
+      }
+      daysContainer.innerHTML = daysHTML;
+
+      // Render projetos próximos
+      const upcomingProjects = filteredProjects
+        .filter(p => {
+          const projectDate = new Date(p.startDate);
+          const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
+          return diffDays >= 0 && diffDays <= 7 && p.status !== 'Finalizada';
+        })
+        .slice(0, 4);
+
+      const projectsContainer = document.getElementById('timelineProjects');
+      projectsContainer.innerHTML = upcomingProjects.map(p => `
+        <div class="timeline-project">
+          <div class="timeline-project-code">Projeto ${p.id}</div>
+          <div class="timeline-project-status">${p.status}</div>
+        </div>
+      `).join('') || '<p style="text-align: center; color: var(--fg-3);">Nenhum projeto programado para os próximos 7 dias.</p>';
+    }
+
+    // ==========================================
+    // FILTER & SEARCH
+    // ==========================================
+
+    function filterByRegion(region) {
+      currentRegion = region;
+      
+      // Update tabs
+      document.querySelectorAll('.region-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.dataset.region === region) {
+          tab.classList.add('active');
+        }
+      });
+
+      applyFilters();
+    }
+
+    function searchProjects(query) {
+      applyFilters(query);
+    }
+
+    function applyFilters(searchQuery = '') {
+      filteredProjects = projectsData.filter(project => {
+        // Filter by region
+        const regionMatch = currentRegion === 'todas' || project.region === currentRegion;
+        
+        // Filter by search
+        const searchLower = searchQuery.toLowerCase();
+        const searchMatch = !searchQuery || 
+          project.id.toLowerCase().includes(searchLower) ||
+          project.client.toLowerCase().includes(searchLower) ||
+          project.city.toLowerCase().includes(searchLower);
+
+        return regionMatch && searchMatch;
+      });
+
+      renderProjects();
+      updateKPIs();
+      renderTimeline();
+    }
+
+    // ==========================================
+    // UTILITY FUNCTIONS
+    // ==========================================
+
+    function toggleCard(card) {
+      const wasExpanded = card.classList.contains('expanded');
+      
+      // Collapse all cards
+      document.querySelectorAll('.project-card').forEach(c => {
+        c.classList.remove('expanded');
+      });
+
+      // Toggle current card
+      if (!wasExpanded) {
+        card.classList.add('expanded');
+      }
+    }
+
+    function normalizeStatus(status) {
+      if (status.includes('Finalizada') || status.includes('Concluída')) return 'finalizada';
+      if (status.includes('andamento') || status.includes('execução')) return 'andamento';
+      if (status.includes('Programada') || status.includes('Liberada')) return 'programada';
+      if (status.includes('Pendencia') || status.includes('Aguardando')) return 'pendencia';
+      return 'programada';
+    }
+
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+    }
+
+    // ==========================================
+    // EVENT LISTENERS
+    // ==========================================
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      searchProjects(e.target.value);
+    });
+
+    // ==========================================
+    // INITIALIZE
+    // ==========================================
+
+    loadData();
+  </script>
+</body>
+</html>
