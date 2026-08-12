@@ -185,27 +185,6 @@
       letter-spacing: 0.05em;
     }
 
-    .timeline-project {
-      padding: var(--space-3) var(--space-4);
-      margin-bottom: var(--space-3);
-      background: var(--bg-sunken);
-      border-left: 3px solid var(--gauss-green);
-      border-radius: var(--radius-sm);
-    }
-
-    .timeline-project-code {
-      font-family: var(--font-mono);
-      font-size: var(--fs-sm);
-      font-weight: 600;
-      color: var(--gauss-green-900);
-      margin-bottom: var(--space-1);
-    }
-
-    .timeline-project-status {
-      font-size: var(--fs-sm);
-      color: var(--fg-2);
-    }
-
     /* Region Tabs */
     .region-tabs {
       display: flex;
@@ -526,11 +505,78 @@
     // SUBSTITUA ESTA URL PELA URL DO SEU WEBHOOK N8N
     const N8N_WEBHOOK_URL = 'https://n8n.gaussenergia.com.br/webhook/gauss-obras';
 
-    // Função para carregar dados da API n8n
+    // ==========================================
+    // UTILITY FUNCTIONS
+    // ==========================================
+
+    // Parsear data LOCAL (sem problema de timezone)
+    function parseDateLocal(dateString) {
+      if (!dateString) return null;
+      
+      // Se já é um objeto Date
+      if (dateString instanceof Date) return dateString;
+      
+      // Se está no formato ISO (YYYY-MM-DD)
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+        const parts = dateString.split('-');
+        // Criar data local (não UTC)
+        return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      }
+      
+      // Se está no formato brasileiro (DD/MM/YYYY)
+      if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
+        const parts = dateString.split('/');
+        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      }
+      
+      // Fallback: tentar criar date normal
+      return new Date(dateString);
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'Data não informada';
+      
+      const date = parseDateLocal(dateString);
+      if (!date || isNaN(date)) return 'Data inválida';
+      
+      return date.toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+    }
+
+    function toggleCard(card) {
+      const wasExpanded = card.classList.contains('expanded');
+      
+      // Collapse all cards
+      document.querySelectorAll('.project-card').forEach(c => {
+        c.classList.remove('expanded');
+      });
+
+      // Toggle current card
+      if (!wasExpanded) {
+        card.classList.add('expanded');
+      }
+    }
+
+    function normalizeStatus(status) {
+      if (!status) return 'programada';
+      const statusLower = status.toLowerCase();
+      if (statusLower.includes('finalizada') || statusLower.includes('concluída')) return 'finalizada';
+      if (statusLower.includes('andamento') || statusLower.includes('execução')) return 'andamento';
+      if (statusLower.includes('programada') || statusLower.includes('liberada')) return 'programada';
+      if (statusLower.includes('pendencia') || statusLower.includes('aguardando')) return 'pendencia';
+      return 'programada';
+    }
+
+    // ==========================================
+    // API - CARREGAR DADOS
+    // ==========================================
+
     async function loadData() {
       const grid = document.getElementById('projectsGrid');
       
-      // Mostra loading
       grid.innerHTML = `
         <div class="loading">
           <div class="spinner"></div>
@@ -539,7 +585,7 @@
       `;
       
       try {
-        console.log('Buscando dados do n8n...');
+        console.log('🔄 Buscando dados do n8n...');
         const response = await fetch(N8N_WEBHOOK_URL);
         
         if (!response.ok) {
@@ -547,14 +593,13 @@
         }
         
         const data = await response.json();
-        console.log('Dados recebidos:', data.length, 'projetos');
+        console.log('✅ Dados recebidos:', data.length, 'itens');
         
         // O n8n retorna um array de objetos com { json: {...} }
-        // Precisamos extrair apenas o conteúdo do json
         projectsData = data.map(item => item.json || item);
         
-        console.log('Dados processados:', projectsData.length, 'projetos');
-        console.log('Primeiro projeto:', projectsData[0]);
+        console.log('📊 Dados processados:', projectsData.length, 'projetos');
+        console.log('📋 Primeiro projeto:', projectsData[0]);
         
         filteredProjects = [...projectsData];
         
@@ -563,7 +608,7 @@
         renderTimeline();
         
       } catch (error) {
-        console.error('Erro ao carregar obras:', error);
+        console.error('❌ Erro ao carregar obras:', error);
         
         grid.innerHTML = `
           <div class="empty-state">
@@ -611,20 +656,20 @@
       grid.innerHTML = filteredProjects.map(project => `
         <div class="project-card" onclick="toggleCard(this)">
           <div class="project-header">
-            <div class="project-code">${project.id}</div>
+            <div class="project-code">${project.id || 'S/N'}</div>
             <div class="status-badge status-${normalizeStatus(project.status)}">
-              ${project.status}
+              ${project.status || 'Sem status'}
             </div>
           </div>
           
-          <div class="project-client">${project.client}</div>
+          <div class="project-client">${project.client || 'Cliente não informado'}</div>
           
           <div class="project-city">
-            📍 ${project.city}
+            📍 ${project.city || 'Cidade não informada'}
           </div>
           
           <div class="project-date" style="margin-bottom: var(--space-2);">
-            👷 Equipe: <strong>${project.team}</strong>
+            👷 Equipe: <strong>${project.team || 'Não informada'}</strong>
           </div>
           
           <div class="project-date">
@@ -634,23 +679,23 @@
           <div class="project-details">
             <div class="detail-item">
               <div class="detail-label">Vendedor</div>
-              <div class="detail-value">${project.vendor}</div>
+              <div class="detail-value">${project.vendor || 'Não informado'}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Equipe Responsável</div>
-              <div class="detail-value">${project.team}</div>
+              <div class="detail-value">${project.team || 'Não informada'}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Módulos</div>
-              <div class="detail-value">${project.modules} (${project.qty} un.)</div>
+              <div class="detail-value">${project.modules || '—'} (${project.qty || '—'} un.)</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Inversor</div>
-              <div class="detail-value">${project.inverter}</div>
+              <div class="detail-value">${project.inverter || 'Não informado'}</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Tipo de Telhado</div>
-              <div class="detail-value">${project.roof}</div>
+              <div class="detail-value">${project.roof || 'Não informado'}</div>
             </div>
             ${project.notes ? `
               <div class="detail-item" style="grid-column: span 2;">
@@ -665,19 +710,22 @@
 
     function updateKPIs() {
       const total = filteredProjects.length;
-      const programada = filteredProjects.filter(p => 
-        p.status.includes('Programada') || 
-        p.status.includes('Liberada') ||
-        p.status.includes('Aguardando')
-      ).length;
-      const andamento = filteredProjects.filter(p => 
-        p.status.includes('andamento') || 
-        p.status.includes('Em execução')
-      ).length;
-      const concluida = filteredProjects.filter(p => 
-        p.status.includes('Finalizada') ||
-        p.status.includes('Concluída')
-      ).length;
+      const programada = filteredProjects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        return status.includes('programada') || 
+               status.includes('liberada') ||
+               status.includes('aguardando');
+      }).length;
+      const andamento = filteredProjects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        return status.includes('andamento') || 
+               status.includes('em execução');
+      }).length;
+      const concluida = filteredProjects.filter(p => {
+        const status = (p.status || '').toLowerCase();
+        return status.includes('finalizada') ||
+               status.includes('concluída');
+      }).length;
 
       document.getElementById('kpiTotal').textContent = total;
       document.getElementById('kpiProgramada').textContent = programada;
@@ -685,156 +733,128 @@
       document.getElementById('kpiConcluida').textContent = concluida;
     }
 
-function renderTimeline() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  
-  const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
-                     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-  
-  document.getElementById('timelineMonth').textContent = 
-    `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
-
-  // ===== RENDER PRÓXIMOS 7 DIAS =====
-  const daysContainer = document.getElementById('timelineDays');
-  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  
-  let daysHTML = '';
-  const weekDates = [];
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + i);
-    weekDates.push(date);
-    
-    daysHTML += `
-      <div class="timeline-day">
-        <div class="timeline-day-num">${date.getDate()}</div>
-        <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
-      </div>
-    `;
-  }
-  daysContainer.innerHTML = daysHTML;
-
-  // ===== RENDER PROJETOS PRÓXIMOS =====
-  const upcomingProjects = filteredProjects
-    .filter(p => {
-      if (!p.startDate) return false;
+    function renderTimeline() {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
       
-      // FIX: Parsear a data SEM problema de timezone
-      const projectDate = parseDateLocal(p.startDate);
-      if (!projectDate) return false;
+      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
+                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
       
-      projectDate.setHours(0, 0, 0, 0);
-      
-      // Pega projetos que começam nos próximos 7 dias
-      const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
-      
-      // Não mostrar concluídas/finalizadas
-      const isNotFinished = !p.status.toLowerCase().includes('finalizada') && 
-                           !p.status.toLowerCase().includes('concluída');
-      
-      return diffDays >= 0 && diffDays <= 6 && isNotFinished;
-    })
-    .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
-    .slice(0, 8);
+      document.getElementById('timelineMonth').textContent = 
+        `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-  const projectsContainer = document.getElementById('timelineProjects');
-  
-  if (upcomingProjects.length === 0) {
-    projectsContainer.innerHTML = `
-      <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
-        Nenhum projeto programado para os próximos 7 dias.
-      </p>
-    `;
-    return;
-  }
-
-  // DEBUG: Ver os projetos que estão sendo renderizados
-  console.log('Projetos na timeline:', upcomingProjects.map(p => ({
-    id: p.id,
-    date: p.startDate,
-    status: p.status
-  })));
-
-  // Criar grid com posicionamento
-  projectsContainer.innerHTML = upcomingProjects.map(p => {
-    const projectDate = parseDateLocal(p.startDate);
-    projectDate.setHours(0, 0, 0, 0);
-    
-    // Calcular em qual coluna (dia) o projeto começa
-    const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
-    
-    // Assumir duração de 3 dias (pode ajustar depois)
-    const duration = 3;
-    const endIndex = Math.min(dayIndex + duration, 6);
-    
-    // Calcular largura e posição no grid
-    const gridColumnStart = dayIndex + 1;
-    const gridColumnEnd = endIndex + 2;
-    
-    // DEBUG: Ver o que está sendo renderizado
-    console.log(`Projeto ${p.id}: dia ${dayIndex}, cols ${gridColumnStart}-${gridColumnEnd}`);
-    
-    return `
-      <div class="timeline-project-row" style="
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: var(--space-2);
-        margin-bottom: var(--space-3);
-      ">
-        <div class="timeline-project-bar" style="
-          grid-column: ${gridColumnStart} / ${gridColumnEnd};
-          background: var(--gauss-green-100);
-          border-left: 3px solid var(--gauss-green);
-          border-radius: var(--radius-sm);
-          padding: var(--space-2) var(--space-3);
-          position: relative;
-        ">
-          <div style="
-            font-family: var(--font-mono);
-            font-size: var(--fs-xs);
-            font-weight: 700;
-            color: var(--gauss-green-900);
-            margin-bottom: 2px;
-          ">
-            Projeto ${p.id || 'S/N'}
+      // ===== RENDER PRÓXIMOS 7 DIAS =====
+      const daysContainer = document.getElementById('timelineDays');
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      
+      let daysHTML = '';
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + i);
+        
+        daysHTML += `
+          <div class="timeline-day">
+            <div class="timeline-day-num">${date.getDate()}</div>
+            <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
           </div>
-          <div style="
-            font-size: var(--fs-xs);
-            color: var(--fg-2);
-          ">
-            ${p.status || 'Sem status'}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
+        `;
+      }
+      daysContainer.innerHTML = daysHTML;
 
-// ===== NOVA FUNÇÃO: Parsear data LOCAL (sem problema de timezone) =====
-function parseDateLocal(dateString) {
-  if (!dateString) return null;
-  
-  // Se já é um objeto Date
-  if (dateString instanceof Date) return dateString;
-  
-  // Se está no formato ISO (YYYY-MM-DD)
-  if (dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
-    const parts = dateString.split('-');
-    // Criar data local (não UTC)
-    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-  }
-  
-  // Se está no formato brasileiro (DD/MM/YYYY)
-  if (dateString.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
-    const parts = dateString.split('/');
-    return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
-  }
-  
-  // Fallback: tentar criar date normal
-  return new Date(dateString);
-}
+      // ===== RENDER PROJETOS PRÓXIMOS =====
+      const upcomingProjects = filteredProjects
+        .filter(p => {
+          if (!p.startDate) return false;
+          
+          const projectDate = parseDateLocal(p.startDate);
+          if (!projectDate || isNaN(projectDate)) return false;
+          
+          projectDate.setHours(0, 0, 0, 0);
+          
+          // Pega projetos que começam nos próximos 7 dias
+          const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
+          
+          // Não mostrar concluídas/finalizadas
+          const status = (p.status || '').toLowerCase();
+          const isNotFinished = !status.includes('finalizada') && 
+                               !status.includes('concluída');
+          
+          return diffDays >= 0 && diffDays <= 6 && isNotFinished;
+        })
+        .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
+        .slice(0, 8);
+
+      const projectsContainer = document.getElementById('timelineProjects');
+      
+      if (upcomingProjects.length === 0) {
+        projectsContainer.innerHTML = `
+          <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
+            Nenhum projeto programado para os próximos 7 dias.
+          </p>
+        `;
+        return;
+      }
+
+      console.log('📅 Projetos na timeline:', upcomingProjects.map(p => ({
+        id: p.id,
+        date: p.startDate,
+        parsed: parseDateLocal(p.startDate).toLocaleDateString('pt-BR')
+      })));
+
+      // Criar grid com posicionamento
+      projectsContainer.innerHTML = upcomingProjects.map(p => {
+        const projectDate = parseDateLocal(p.startDate);
+        projectDate.setHours(0, 0, 0, 0);
+        
+        // Calcular em qual coluna (dia) o projeto começa
+        const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
+        
+        // Assumir duração de 3 dias
+        const duration = 3;
+        const endIndex = Math.min(dayIndex + duration, 6);
+        
+        // Calcular largura e posição no grid
+        const gridColumnStart = dayIndex + 1;
+        const gridColumnEnd = endIndex + 2;
+        
+        console.log(`  → Projeto ${p.id}: dia ${dayIndex}, grid ${gridColumnStart}-${gridColumnEnd}`);
+        
+        return `
+          <div class="timeline-project-row" style="
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+          ">
+            <div class="timeline-project-bar" style="
+              grid-column: ${gridColumnStart} / ${gridColumnEnd};
+              background: var(--gauss-green-100);
+              border-left: 3px solid var(--gauss-green);
+              border-radius: var(--radius-sm);
+              padding: var(--space-2) var(--space-3);
+              position: relative;
+            ">
+              <div style="
+                font-family: var(--font-mono);
+                font-size: var(--fs-xs);
+                font-weight: 700;
+                color: var(--gauss-green-900);
+                margin-bottom: 2px;
+              ">
+                Projeto ${p.id || 'S/N'}
+              </div>
+              <div style="
+                font-size: var(--fs-xs);
+                color: var(--fg-2);
+              ">
+                ${p.status || 'Sem status'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     // ==========================================
     // FILTER & SEARCH
@@ -843,7 +863,6 @@ function parseDateLocal(dateString) {
     function filterByRegion(region) {
       currentRegion = region;
       
-      // Update tabs
       document.querySelectorAll('.region-tab').forEach(tab => {
         tab.classList.remove('active');
         if (tab.dataset.region === region) {
@@ -866,9 +885,9 @@ function parseDateLocal(dateString) {
         // Filter by search
         const searchLower = searchQuery.toLowerCase();
         const searchMatch = !searchQuery || 
-          project.id.toLowerCase().includes(searchLower) ||
-          project.client.toLowerCase().includes(searchLower) ||
-          project.city.toLowerCase().includes(searchLower);
+          (project.id || '').toLowerCase().includes(searchLower) ||
+          (project.client || '').toLowerCase().includes(searchLower) ||
+          (project.city || '').toLowerCase().includes(searchLower);
 
         return regionMatch && searchMatch;
       });
@@ -877,45 +896,6 @@ function parseDateLocal(dateString) {
       updateKPIs();
       renderTimeline();
     }
-
-    // ==========================================
-    // UTILITY FUNCTIONS
-    // ==========================================
-
-    function toggleCard(card) {
-      const wasExpanded = card.classList.contains('expanded');
-      
-      // Collapse all cards
-      document.querySelectorAll('.project-card').forEach(c => {
-        c.classList.remove('expanded');
-      });
-
-      // Toggle current card
-      if (!wasExpanded) {
-        card.classList.add('expanded');
-      }
-    }
-
-    function normalizeStatus(status) {
-      if (status.includes('Finalizada') || status.includes('Concluída')) return 'finalizada';
-      if (status.includes('andamento') || status.includes('execução')) return 'andamento';
-      if (status.includes('Programada') || status.includes('Liberada')) return 'programada';
-      if (status.includes('Pendencia') || status.includes('Aguardando')) return 'pendencia';
-      return 'programada';
-    }
-
-    function formatDate(dateString) {
-  if (!dateString) return 'Data não informada';
-  
-  const date = parseDateLocal(dateString);
-  if (!date || isNaN(date)) return 'Data inválida';
-  
-  return date.toLocaleDateString('pt-BR', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric' 
-  });
-}
 
     // ==========================================
     // EVENT LISTENERS
