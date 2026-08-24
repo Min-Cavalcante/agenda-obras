@@ -698,6 +698,16 @@
       });
     }
 
+    function formatDateShort(dateString) {
+      if (!dateString) return '—';
+      const date = parseDateLocal(dateString);
+      if (!date || isNaN(date)) return '—';
+      return date.toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit'
+      });
+    }
+
     function toggleCard(card) {
       const wasExpanded = card.classList.contains('expanded');
       document.querySelectorAll('.project-card').forEach(c => {
@@ -972,7 +982,7 @@
       }
       daysContainer.innerHTML = daysHTML;
 
-      // ===== RENDER PROJETOS =====
+      // ===== FILTRAR PROJETOS =====
       const weekEnd = new Date(now);
       weekEnd.setDate(weekEnd.getDate() + 6);
       weekEnd.setHours(23, 59, 59, 999);
@@ -986,30 +996,19 @@
           
           projectStart.setHours(0, 0, 0, 0);
           
-          // Verificar se o projeto está finalizado
-          const status = (p.status || '').toLowerCase();
-          const isFinished = status.includes('finalizada') || status.includes('concluída');
-          
-          // Se tem data de término definida
+          // Se tem data de término válida
           if (p.endDate) {
             const projectEnd = parseDateLocal(p.endDate);
             if (projectEnd && !isNaN(projectEnd)) {
               projectEnd.setHours(23, 59, 59, 999);
               
-              // Mostrar se há interseção com a semana
+              // Mostrar se há interseção com a semana visível
               return projectStart <= weekEnd && projectEnd >= now;
             }
           }
           
-          // Se NÃO está finalizado (em andamento ou programado)
-          if (!isFinished) {
-            // Mostrar se começou antes ou durante a semana
-            return projectStart <= weekEnd;
-          }
-          
-          // Se está finalizado mas não tem data de término
-          // Mostrar apenas se começou durante a semana
-          return projectStart >= now && projectStart <= weekEnd;
+          // Se NÃO tem data de término, mostrar se começou antes ou durante a semana
+          return projectStart <= weekEnd;
         })
         .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate));
 
@@ -1029,8 +1028,7 @@
         client: p.client,
         team: p.team,
         startDate: p.startDate,
-        endDate: p.endDate,
-        status: p.status
+        endDate: p.endDate
       })));
 
       // ===== RENDER BARRAS DE PROJETO =====
@@ -1038,30 +1036,22 @@
         const projectStart = parseDateLocal(p.startDate);
         projectStart.setHours(0, 0, 0, 0);
         
-        const status = (p.status || '').toLowerCase();
-        const isFinished = status.includes('finalizada') || status.includes('concluída');
-        
-        // Calcular data de término para exibição
+        // Calcular data de término
         let projectEnd;
-        let endDateValid = false;
+        let hasEndDate = false;
         
         if (p.endDate) {
           projectEnd = parseDateLocal(p.endDate);
           if (projectEnd && !isNaN(projectEnd)) {
             projectEnd.setHours(0, 0, 0, 0);
-            endDateValid = true;
+            hasEndDate = true;
           }
         }
         
-        // Se não tem data de término válida
-        if (!endDateValid) {
-          if (!isFinished) {
-            // Se não está finalizado e não tem data, vai até o fim da semana
-            projectEnd = new Date(weekEnd);
-          } else {
-            // Se está finalizado mas não tem data, mostrar só no dia de início
-            projectEnd = new Date(projectStart);
-          }
+        // Se não tem data de término, vai até o fim da semana
+        if (!hasEndDate) {
+          projectEnd = new Date(weekEnd);
+          projectEnd.setHours(0, 0, 0, 0);
         }
         
         // Calcular posição no grid (relativo a 'now')
@@ -1074,27 +1064,28 @@
           dayStart = 0;
         }
         
-        // Limitar ao fim da semana
+        // Limitar ao intervalo 0-6
         dayEnd = Math.min(6, Math.max(dayStart, dayEnd));
         
         const gridColumnStart = dayStart + 1;
-        const gridColumnEnd = dayEnd + 2; // +2 porque grid-column-end é exclusivo
+        const gridColumnEnd = dayEnd + 2;
         
-        console.log(`Projeto ${p.id}: start=${projectStart.toLocaleDateString()}, end=${projectEnd.toLocaleDateString()}, dayStart=${dayStart}, dayEnd=${dayEnd}, grid=${gridColumnStart}/${gridColumnEnd}`);
+        console.log(`📊 ${p.id}: ${formatDateShort(p.startDate)} → ${formatDateShort(p.endDate)} | grid: ${gridColumnStart}/${gridColumnEnd}`);
         
         // Truncar nome do cliente
         const clientName = p.client || 'Cliente não informado';
-        const shortClientName = clientName.length > 25 
-          ? clientName.substring(0, 25) + '...' 
+        const shortClientName = clientName.length > 20 
+          ? clientName.substring(0, 20) + '...' 
           : clientName;
         
         const teamName = p.team || 'Não informada';
         
         // Definir cor baseada no status
+        const status = (p.status || '').toLowerCase();
         let bgColor = 'var(--gauss-green-100)';
         let borderColor = 'var(--gauss-green)';
         
-        if (isFinished) {
+        if (status.includes('finalizada') || status.includes('concluída')) {
           bgColor = '#E6F5EA';
           borderColor = '#1B5D24';
         } else if (status.includes('pendencia')) {
@@ -1122,9 +1113,10 @@
               position: relative;
               transition: all 0.2s;
               cursor: pointer;
+              min-height: 75px;
             " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-sm)'" 
                onmouseout="this.style.transform=''; this.style.boxShadow=''"
-               title="${clientName} - ${teamName}${startedBefore ? ' | Iniciado em ' + formatDate(p.startDate) : ''} ${p.endDate ? '| Término: ' + formatDate(p.endDate) : '| Em andamento'}">
+               title="${clientName} | ${teamName} | ${formatDate(p.startDate)} → ${p.endDate ? formatDate(p.endDate) : 'Em andamento'}">
               
               <!-- Linha 1: Código + Cliente -->
               <div style="
@@ -1133,7 +1125,7 @@
                 gap: 6px;
                 margin-bottom: 4px;
               ">
-                ${startedBefore ? '<span style="font-size: 12px;">◀</span>' : ''}
+                ${startedBefore ? '<span style="font-size: 12px; color: ' + borderColor + ';">◀</span>' : ''}
                 <span style="
                   font-family: var(--font-mono);
                   font-size: var(--fs-xs);
@@ -1159,7 +1151,7 @@
               <div style="
                 font-size: var(--fs-xs);
                 color: var(--fg-2);
-                margin-bottom: 2px;
+                margin-bottom: 4px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -1167,13 +1159,22 @@
                 👷 ${teamName}
               </div>
               
-              <!-- Linha 3: Status -->
+              <!-- Linha 3: Datas -->
               <div style="
-                font-size: var(--fs-xs);
+                font-size: 10px;
                 color: var(--fg-3);
-                font-style: italic;
+                font-weight: 600;
+                display: flex;
+                gap: 4px;
+                align-items: center;
               ">
-                ${p.status || 'Sem status'}${!endDateValid && !isFinished ? ' • Em andamento' : ''}
+                <span style="color: var(--gauss-green-700);">▶ ${formatDateShort(p.startDate)}</span>
+                ${hasEndDate ? 
+                  `<span style="color: var(--fg-3);">→</span>
+                   <span style="color: #1B5D24;">⏹ ${formatDateShort(p.endDate)}</span>` 
+                  : 
+                  `<span style="color: var(--fg-3); font-style: italic;">• Em andamento</span>`
+                }
               </div>
             </div>
           </div>
