@@ -144,12 +144,22 @@
       margin-bottom: var(--space-2);
     }
 
+    /* Timeline Days - Sticky Header */
     .timeline-days {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: var(--space-2);
       margin-bottom: var(--space-5);
       text-align: center;
+      position: sticky;
+      top: 0;
+      background: var(--bg-surface);
+      z-index: 10;
+      padding: var(--space-3) 0;
+      margin: 0 calc(-1 * var(--space-6)) var(--space-5) calc(-1 * var(--space-6));
+      padding-left: var(--space-6);
+      padding-right: var(--space-6);
+      border-bottom: 2px solid var(--border-hairline);
     }
 
     .timeline-day {
@@ -169,6 +179,35 @@
       color: var(--fg-3);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    /* Timeline Projects Container */
+    .timeline-projects-container {
+      max-height: 500px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: var(--space-2);
+      /* Scrollbar styling */
+      scrollbar-width: thin;
+      scrollbar-color: var(--gauss-green-300) var(--bg-sunken);
+    }
+
+    .timeline-projects-container::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .timeline-projects-container::-webkit-scrollbar-track {
+      background: var(--bg-sunken);
+      border-radius: 4px;
+    }
+
+    .timeline-projects-container::-webkit-scrollbar-thumb {
+      background: var(--gauss-green-300);
+      border-radius: 4px;
+    }
+
+    .timeline-projects-container::-webkit-scrollbar-thumb:hover {
+      background: var(--gauss-green);
     }
 
     /* Period Filter */
@@ -555,11 +594,17 @@
     <div class="timeline-header">
       <h2 id="timelineMonth">JANEIRO 2025</h2>
     </div>
+    
+    <!-- Timeline Days (Sticky Header) -->
     <div class="timeline-days" id="timelineDays">
       <!-- Dias serão inseridos via JS -->
     </div>
-    <div id="timelineProjects">
-      <!-- Projetos do timeline serão inseridos via JS -->
+    
+    <!-- Timeline Projects (Scrollable) -->
+    <div class="timeline-projects-container">
+      <div id="timelineProjects">
+        <!-- Projetos do timeline serão inseridos via JS -->
+      </div>
     </div>
   </div>
 
@@ -951,8 +996,7 @@
             if (projectEnd && !isNaN(projectEnd)) {
               projectEnd.setHours(23, 59, 59, 999);
               
-              // Mostrar se:
-              // 1. Começou antes/durante a semana E termina durante/depois do início da semana
+              // Mostrar se há interseção com a semana
               return projectStart <= weekEnd && projectEnd >= now;
             }
           }
@@ -967,8 +1011,7 @@
           // Mostrar apenas se começou durante a semana
           return projectStart >= now && projectStart <= weekEnd;
         })
-        .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
-        .slice(0, 15);
+        .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate));
 
       const projectsContainer = document.getElementById('timelineProjects');
       
@@ -1000,33 +1043,44 @@
         
         // Calcular data de término para exibição
         let projectEnd;
+        let endDateValid = false;
+        
         if (p.endDate) {
           projectEnd = parseDateLocal(p.endDate);
-          if (!projectEnd || isNaN(projectEnd)) {
-            projectEnd = new Date(weekEnd);
+          if (projectEnd && !isNaN(projectEnd)) {
+            projectEnd.setHours(0, 0, 0, 0);
+            endDateValid = true;
           }
-        } else if (!isFinished) {
-          // Se não está finalizado e não tem data, vai até o fim da semana
-          projectEnd = new Date(weekEnd);
-        } else {
-          // Se está finalizado mas não tem data, mostrar só no dia de início
-          projectEnd = new Date(projectStart);
         }
         
-        projectEnd.setHours(0, 0, 0, 0);
+        // Se não tem data de término válida
+        if (!endDateValid) {
+          if (!isFinished) {
+            // Se não está finalizado e não tem data, vai até o fim da semana
+            projectEnd = new Date(weekEnd);
+          } else {
+            // Se está finalizado mas não tem data, mostrar só no dia de início
+            projectEnd = new Date(projectStart);
+          }
+        }
         
-        // Calcular posição no grid (começando do dia atual)
+        // Calcular posição no grid (relativo a 'now')
         let dayStart = Math.floor((projectStart - now) / (1000 * 60 * 60 * 24));
+        let dayEnd = Math.floor((projectEnd - now) / (1000 * 60 * 60 * 24));
         
         // Se começou antes da semana atual, começar do dia 0 (hoje)
-        if (dayStart < 0) {
+        const startedBefore = dayStart < 0;
+        if (startedBefore) {
           dayStart = 0;
         }
         
-        const dayEnd = Math.min(6, Math.floor((projectEnd - now) / (1000 * 60 * 60 * 24)));
+        // Limitar ao fim da semana
+        dayEnd = Math.min(6, Math.max(dayStart, dayEnd));
         
         const gridColumnStart = dayStart + 1;
-        const gridColumnEnd = dayEnd + 2;
+        const gridColumnEnd = dayEnd + 2; // +2 porque grid-column-end é exclusivo
+        
+        console.log(`Projeto ${p.id}: start=${projectStart.toLocaleDateString()}, end=${projectEnd.toLocaleDateString()}, dayStart=${dayStart}, dayEnd=${dayEnd}, grid=${gridColumnStart}/${gridColumnEnd}`);
         
         // Truncar nome do cliente
         const clientName = p.client || 'Cliente não informado';
@@ -1050,9 +1104,6 @@
           bgColor = '#FFF4E6';
           borderColor = '#B45F06';
         }
-        
-        // Indicador se começou antes
-        const startedBefore = projectStart < now;
         
         return `
           <div class="timeline-project-row" style="
@@ -1122,7 +1173,7 @@
                 color: var(--fg-3);
                 font-style: italic;
               ">
-                ${p.status || 'Sem status'}${!p.endDate && !isFinished ? ' • Em andamento' : ''}
+                ${p.status || 'Sem status'}${!endDateValid && !isFinished ? ' • Em andamento' : ''}
               </div>
             </div>
           </div>
