@@ -144,9 +144,66 @@
       margin-bottom: var(--space-2);
     }
 
+    /* Timeline Controls */
+    .timeline-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+      flex-wrap: wrap;
+    }
+
+    .timeline-controls button {
+      padding: var(--space-2) var(--space-4);
+      background: var(--gauss-green);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-display);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: var(--fs-sm);
+    }
+
+    .timeline-controls button:hover {
+      background: var(--gauss-green-700);
+      transform: translateY(-1px);
+    }
+
+    .timeline-controls button:disabled {
+      background: var(--bg-sunken);
+      color: var(--fg-3);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .timeline-controls select {
+      padding: var(--space-2) var(--space-3);
+      font-family: var(--font-body);
+      font-size: var(--fs-sm);
+      border: 2px solid var(--border-hairline);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--fg-1);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .timeline-controls select:focus {
+      outline: none;
+      border-color: var(--gauss-green);
+    }
+
+    .timeline-controls label {
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      color: var(--fg-2);
+    }
+
     .timeline-days {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
       gap: var(--space-2);
       margin-bottom: var(--space-5);
       text-align: center;
@@ -457,9 +514,14 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .timeline-days {
-        grid-template-columns: repeat(7, 1fr);
-        font-size: var(--fs-xs);
+      .timeline-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .timeline-controls select,
+      .timeline-controls button {
+        width: 100%;
       }
 
       .period-filter {
@@ -555,6 +617,26 @@
     <div class="timeline-header">
       <h2 id="timelineMonth">JANEIRO 2025</h2>
     </div>
+    
+    <!-- Timeline Controls -->
+    <div class="timeline-controls">
+      <button onclick="previousPeriod()">◀ Anterior</button>
+      
+      <label for="daysToShow">Mostrar:</label>
+      <select id="daysToShow" onchange="updateTimelineDays()">
+        <option value="3">3 dias</option>
+        <option value="5">5 dias</option>
+        <option value="7" selected>7 dias</option>
+        <option value="10">10 dias</option>
+        <option value="14">14 dias</option>
+        <option value="21">21 dias</option>
+        <option value="30">30 dias</option>
+      </select>
+      
+      <button onclick="goToToday()">Hoje</button>
+      <button onclick="nextPeriod()">Próximo ▶</button>
+    </div>
+
     <div class="timeline-days" id="timelineDays">
       <!-- Dias serão inseridos via JS -->
     </div>
@@ -618,6 +700,8 @@
     let currentRegion = 'todas';
     let currentMonth = '';
     let currentYear = '';
+    let timelineStartDate = new Date();
+    timelineStartDate.setHours(0, 0, 0, 0);
 
     const N8N_WEBHOOK_URL = 'https://n8n.gaussenergia.com.br/webhook/gauss-obras';
 
@@ -698,6 +782,32 @@
     }
 
     // ==========================================
+    // TIMELINE NAVIGATION
+    // ==========================================
+
+    function updateTimelineDays() {
+      renderTimeline();
+    }
+
+    function previousPeriod() {
+      const daysToShow = parseInt(document.getElementById('daysToShow').value);
+      timelineStartDate.setDate(timelineStartDate.getDate() - daysToShow);
+      renderTimeline();
+    }
+
+    function nextPeriod() {
+      const daysToShow = parseInt(document.getElementById('daysToShow').value);
+      timelineStartDate.setDate(timelineStartDate.getDate() + daysToShow);
+      renderTimeline();
+    }
+
+    function goToToday() {
+      timelineStartDate = new Date();
+      timelineStartDate.setHours(0, 0, 0, 0);
+      renderTimeline();
+    }
+
+    // ==========================================
     // API - CARREGAR DADOS
     // ==========================================
 
@@ -723,8 +833,7 @@
         console.log('✅ Dados recebidos:', data.length, 'itens');
         
         projectsData = data.map(item => item.json || item);
-
-        projectsData.reverse(); // Inverte a ordem: últimos adicionados aparecem primeiro
+        projectsData.reverse();
         
         console.log('📊 Dados processados:', projectsData.length, 'projetos');
         console.log('📋 Primeiro projeto:', projectsData[0]);
@@ -822,6 +931,12 @@
               🗓 Início: ${formatDate(project.startDate)}
             </div>
 
+            ${project.endDate ? `
+              <div class="project-date">
+                🏁 Término Previsto: ${formatDate(project.endDate)}
+              </div>
+            ` : ''}
+
             <div class="project-details">
               <div class="detail-item">
                 <div class="detail-label">Vendedor</div>
@@ -891,176 +1006,239 @@
     }
 
     function renderTimeline() {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  
-  const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
-                     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-  
-  document.getElementById('timelineMonth').textContent = 
-    `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
-
-  // ===== RENDER PRÓXIMOS 7 DIAS =====
-  const daysContainer = document.getElementById('timelineDays');
-  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  
-  let daysHTML = '';
-  
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() + i);
-    
-    daysHTML += `
-      <div class="timeline-day">
-        <div class="timeline-day-num">${date.getDate()}</div>
-        <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
-      </div>
-    `;
-  }
-  daysContainer.innerHTML = daysHTML;
-
-  // ===== RENDER PROJETOS PRÓXIMOS =====
-  const upcomingProjects = filteredProjects
-    .filter(p => {
-      if (!p.startDate) return false;
+      const daysToShow = parseInt(document.getElementById('daysToShow').value);
+      const startDate = new Date(timelineStartDate);
       
-      const projectDate = parseDateLocal(p.startDate);
-      if (!projectDate || isNaN(projectDate)) return false;
+      const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
+                         'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
       
-      projectDate.setHours(0, 0, 0, 0);
+      // Atualizar título do mês
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + daysToShow - 1);
       
-      // Pega projetos que começam nos próximos 7 dias
-      const diffDays = Math.ceil((projectDate - now) / (1000 * 60 * 60 * 24));
+      let titleText = '';
+      if (startDate.getMonth() === endDate.getMonth()) {
+        titleText = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+      } else {
+        titleText = `${monthNames[startDate.getMonth()]} - ${monthNames[endDate.getMonth()]} ${startDate.getFullYear()}`;
+      }
       
-      // Não mostrar concluídas/finalizadas
-      const status = (p.status || '').toLowerCase();
-      const isNotFinished = !status.includes('finalizada') && 
-                           !status.includes('concluída');
+      document.getElementById('timelineMonth').textContent = titleText;
+
+      // ===== RENDER DIAS =====
+      const daysContainer = document.getElementById('timelineDays');
+      const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       
-      return diffDays >= 0 && diffDays <= 6 && isNotFinished;
-    })
-    .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
-    .slice(0, 8);
-
-  const projectsContainer = document.getElementById('timelineProjects');
-  
-  if (upcomingProjects.length === 0) {
-    projectsContainer.innerHTML = `
-      <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
-        Nenhum projeto programado para os próximos 7 dias.
-      </p>
-    `;
-    return;
-  }
-
-  console.log('📅 Projetos na timeline:', upcomingProjects.map(p => ({
-    id: p.id,
-    client: p.client,
-    team: p.team,
-    date: p.startDate
-  })));
-
-  // ===== CONFIGURAÇÃO DA DURAÇÃO =====
-  // Para mostrar apenas no dia de início, mude para: const duration = 1;
-  // Para mostrar por 3 dias (padrão), deixe: const duration = 3;
-  const duration = 2;
-
-  // Criar grid com posicionamento
-  projectsContainer.innerHTML = upcomingProjects.map(p => {
-    const projectDate = parseDateLocal(p.startDate);
-    projectDate.setHours(0, 0, 0, 0);
-    
-    // Calcular em qual coluna (dia) o projeto começa
-    const dayIndex = Math.floor((projectDate - now) / (1000 * 60 * 60 * 24));
-    
-    // Calcular duração
-    const endIndex = Math.min(dayIndex + duration - 1, 6);
-    
-    // Calcular largura e posição no grid
-    const gridColumnStart = dayIndex + 1;
-    const gridColumnEnd = endIndex + 2;
-    
-    // Truncar nome do cliente se for muito longo
-    const clientName = p.client || 'Cliente não informado';
-    const shortClientName = clientName.length > 25 
-      ? clientName.substring(0, 25) + '...' 
-      : clientName;
-    
-    const teamName = p.team || 'Não informada';
-    
-    return `
-      <div class="timeline-project-row" style="
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: var(--space-2);
-        margin-bottom: var(--space-3);
-      ">
-        <div class="timeline-project-bar" style="
-          grid-column: ${gridColumnStart} / ${gridColumnEnd};
-          background: var(--gauss-green-100);
-          border-left: 3px solid var(--gauss-green);
-          border-radius: var(--radius-sm);
-          padding: var(--space-2) var(--space-3);
-          position: relative;
-          transition: all 0.2s;
-          cursor: pointer;
-        " onmouseover="this.style.background='var(--gauss-green-300)'" 
-           onmouseout="this.style.background='var(--gauss-green-100)'"
-           title="${clientName} - ${teamName}">
-          
-          <!-- Linha 1: Código + Cliente -->
-          <div style="
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
-          ">
-            <span style="
-              font-family: var(--font-mono);
-              font-size: var(--fs-xs);
-              font-weight: 700;
-              color: var(--gauss-green-900);
-              white-space: nowrap;
-            ">
-              ${p.id || 'S/N'}
-            </span>
-            <span style="
-              font-size: var(--fs-xs);
-              color: var(--fg-1);
-              font-weight: 600;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            ">
-              ${shortClientName}
-            </span>
+      // Ajustar grid columns dinamicamente
+      daysContainer.style.gridTemplateColumns = `repeat(${daysToShow}, 1fr)`;
+      
+      let daysHTML = '';
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      for (let i = 0; i < daysToShow; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        
+        const isToday = date.getTime() === today.getTime();
+        
+        daysHTML += `
+          <div class="timeline-day" style="${isToday ? 'background: var(--gauss-green-100); border: 2px solid var(--gauss-green);' : ''}">
+            <div class="timeline-day-num">${date.getDate()}</div>
+            <div class="timeline-day-name">${dayNames[date.getDay()]}</div>
+            ${isToday ? '<div style="font-size: 10px; color: var(--gauss-green-900); font-weight: 700;">HOJE</div>' : ''}
           </div>
+        `;
+      }
+      daysContainer.innerHTML = daysHTML;
+
+      // ===== FILTRAR PROJETOS PARA O PERÍODO =====
+      const periodEnd = new Date(startDate);
+      periodEnd.setDate(periodEnd.getDate() + daysToShow - 1);
+      periodEnd.setHours(23, 59, 59, 999);
+
+      const projectsInPeriod = filteredProjects
+        .filter(p => {
+          if (!p.startDate) return false;
           
-          <!-- Linha 2: Equipe -->
-          <div style="
-            font-size: var(--fs-xs);
-            color: var(--fg-2);
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          ">
-            👷 ${teamName}
-          </div>
+          const projectStart = parseDateLocal(p.startDate);
+          if (!projectStart || isNaN(projectStart)) return false;
           
-          <!-- Linha 3: Status -->
-          <div style="
-            font-size: var(--fs-xs);
-            color: var(--fg-3);
-            font-style: italic;
+          projectStart.setHours(0, 0, 0, 0);
+          
+          // Determinar data de término
+          let projectEnd;
+          if (p.endDate) {
+            projectEnd = parseDateLocal(p.endDate);
+            if (!projectEnd || isNaN(projectEnd)) {
+              // Se data de término é inválida, considerar em andamento
+              projectEnd = new Date(periodEnd);
+            }
+          } else {
+            // Se não tem data de término, considerar em andamento até o fim do período
+            const status = (p.status || '').toLowerCase();
+            const isFinished = status.includes('finalizada') || status.includes('concluída');
+            
+            if (isFinished) {
+              // Se está finalizada mas não tem data, usar data de início
+              projectEnd = new Date(projectStart);
+            } else {
+              // Se está em andamento, mostrar até o fim do período
+              projectEnd = new Date(periodEnd);
+            }
+          }
+          
+          projectEnd.setHours(23, 59, 59, 999);
+          
+          // Verificar se o projeto tem interseção com o período visível
+          return projectStart <= periodEnd && projectEnd >= startDate;
+        })
+        .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
+        .slice(0, 15); // Limitar para evitar sobrecarga visual
+
+      const projectsContainer = document.getElementById('timelineProjects');
+      
+      if (projectsInPeriod.length === 0) {
+        projectsContainer.innerHTML = `
+          <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
+            Nenhum projeto programado para este período.
+          </p>
+        `;
+        return;
+      }
+
+      console.log('📅 Projetos na timeline:', projectsInPeriod.map(p => ({
+        id: p.id,
+        client: p.client,
+        startDate: p.startDate,
+        endDate: p.endDate,
+        status: p.status
+      })));
+
+      // ===== RENDER PROJETOS =====
+      projectsContainer.innerHTML = projectsInPeriod.map(p => {
+        const projectStart = parseDateLocal(p.startDate);
+        projectStart.setHours(0, 0, 0, 0);
+        
+        // Calcular data de término
+        let projectEnd;
+        if (p.endDate) {
+          projectEnd = parseDateLocal(p.endDate);
+          if (!projectEnd || isNaN(projectEnd)) {
+            projectEnd = new Date(periodEnd);
+          }
+        } else {
+          const status = (p.status || '').toLowerCase();
+          const isFinished = status.includes('finalizada') || status.includes('concluída');
+          
+          if (isFinished) {
+            projectEnd = new Date(projectStart);
+          } else {
+            projectEnd = new Date(periodEnd);
+          }
+        }
+        
+        projectEnd.setHours(0, 0, 0, 0);
+        
+        // Calcular posicionamento no grid
+        const dayStart = Math.max(0, Math.floor((projectStart - startDate) / (1000 * 60 * 60 * 24)));
+        const dayEnd = Math.min(daysToShow - 1, Math.floor((projectEnd - startDate) / (1000 * 60 * 60 * 24)));
+        
+        const gridColumnStart = dayStart + 1;
+        const gridColumnEnd = dayEnd + 2;
+        
+        // Truncar nome do cliente
+        const clientName = p.client || 'Cliente não informado';
+        const shortClientName = clientName.length > 25 
+          ? clientName.substring(0, 25) + '...' 
+          : clientName;
+        
+        const teamName = p.team || 'Não informada';
+        
+        // Definir cor baseada no status
+        let bgColor = 'var(--gauss-green-100)';
+        let borderColor = 'var(--gauss-green)';
+        const status = (p.status || '').toLowerCase();
+        
+        if (status.includes('finalizada') || status.includes('concluída')) {
+          bgColor = '#E6F5EA';
+          borderColor = '#1B5D24';
+        } else if (status.includes('pendencia')) {
+          bgColor = '#FEE';
+          borderColor = '#B91C1C';
+        }
+        
+        return `
+          <div class="timeline-project-row" style="
+            display: grid;
+            grid-template-columns: repeat(${daysToShow}, 1fr);
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
           ">
-            ${p.status || 'Sem status'}
+            <div class="timeline-project-bar" style="
+              grid-column: ${gridColumnStart} / ${gridColumnEnd};
+              background: ${bgColor};
+              border-left: 3px solid ${borderColor};
+              border-radius: var(--radius-sm);
+              padding: var(--space-2) var(--space-3);
+              position: relative;
+              transition: all 0.2s;
+              cursor: pointer;
+              min-height: 60px;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-sm)'" 
+               onmouseout="this.style.transform=''; this.style.boxShadow=''"
+               title="${clientName} - ${teamName} | ${formatDate(p.startDate)} - ${p.endDate ? formatDate(p.endDate) : 'Em andamento'}">
+              
+              <div style="
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin-bottom: 4px;
+              ">
+                <span style="
+                  font-family: var(--font-mono);
+                  font-size: var(--fs-xs);
+                  font-weight: 700;
+                  color: ${borderColor};
+                  white-space: nowrap;
+                ">
+                  ${p.id || 'S/N'}
+                </span>
+                <span style="
+                  font-size: var(--fs-xs);
+                  color: var(--fg-1);
+                  font-weight: 600;
+                  white-space: nowrap;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                ">
+                  ${shortClientName}
+                </span>
+              </div>
+              
+              <div style="
+                font-size: var(--fs-xs);
+                color: var(--fg-2);
+                margin-bottom: 2px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              ">
+                👷 ${teamName}
+              </div>
+              
+              <div style="
+                font-size: var(--fs-xs);
+                color: var(--fg-3);
+                font-style: italic;
+              ">
+                ${p.status || 'Sem status'}${!p.endDate && !status.includes('finalizada') ? ' • Em andamento' : ''}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
+        `;
+      }).join('');
+    }
 
     // ==========================================
     // FILTER & SEARCH
@@ -1152,10 +1330,10 @@
     loadData();
 
     // Atualizar automaticamente a cada 5 minutos
-setInterval(() => {
-  console.log('🔄 Atualizando dados automaticamente...');
-  loadData();
-}, 5 * 60 * 1000); // 5 minutos
+    setInterval(() => {
+      console.log('🔄 Atualizando dados automaticamente...');
+      loadData();
+    }, 5 * 60 * 1000);
     
   </script>
 </body>
