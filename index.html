@@ -144,99 +144,9 @@
       margin-bottom: var(--space-2);
     }
 
-    /* Timeline Controls */
-    .timeline-controls {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: var(--space-4);
-      margin-bottom: var(--space-5);
-      flex-wrap: wrap;
-    }
-
-    .timeline-controls button {
-      padding: var(--space-2) var(--space-4);
-      background: var(--gauss-green);
-      color: white;
-      border: none;
-      border-radius: var(--radius-sm);
-      font-family: var(--font-display);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: var(--fs-sm);
-    }
-
-    .timeline-controls button:hover {
-      background: var(--gauss-green-700);
-      transform: translateY(-1px);
-    }
-
-    .timeline-controls button:disabled {
-      background: var(--bg-sunken);
-      color: var(--fg-3);
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .timeline-controls select {
-      padding: var(--space-2) var(--space-3);
-      font-family: var(--font-body);
-      font-size: var(--fs-sm);
-      border: 2px solid var(--border-hairline);
-      border-radius: var(--radius-sm);
-      background: var(--bg-surface);
-      color: var(--fg-1);
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .timeline-controls select:focus {
-      outline: none;
-      border-color: var(--gauss-green);
-    }
-
-    .timeline-controls label {
-      font-size: var(--fs-sm);
-      font-weight: 600;
-      color: var(--fg-2);
-    }
-
-    /* Timeline Scroll Container */
-    .timeline-scroll-container {
-      overflow-x: auto;
-      overflow-y: visible;
-      margin: 0 calc(-1 * var(--space-6));
-      padding: 0 var(--space-6);
-      /* Estilização da scrollbar */
-      scrollbar-width: thin;
-      scrollbar-color: var(--gauss-green-300) var(--bg-sunken);
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar {
-      height: 8px;
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar-track {
-      background: var(--bg-sunken);
-      border-radius: 4px;
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar-thumb {
-      background: var(--gauss-green-300);
-      border-radius: 4px;
-    }
-
-    .timeline-scroll-container::-webkit-scrollbar-thumb:hover {
-      background: var(--gauss-green);
-    }
-
-    .timeline-content {
-      min-width: min-content;
-    }
-
     .timeline-days {
       display: grid;
+      grid-template-columns: repeat(7, 1fr);
       gap: var(--space-2);
       margin-bottom: var(--space-5);
       text-align: center;
@@ -246,21 +156,6 @@
       padding: var(--space-2);
       background: var(--bg-sunken);
       border-radius: var(--radius-sm);
-      min-width: 60px;
-    }
-
-    /* Ajuste dinâmico para muitos dias */
-    .timeline-days.many-days .timeline-day {
-      min-width: 50px;
-      padding: var(--space-1) 4px;
-    }
-
-    .timeline-days.many-days .timeline-day-num {
-      font-size: var(--fs-body);
-    }
-
-    .timeline-days.many-days .timeline-day-name {
-      font-size: 9px;
     }
 
     .timeline-day-num {
@@ -274,10 +169,6 @@
       color: var(--fg-3);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-    }
-
-    #timelineProjects {
-      min-width: 100%;
     }
 
     /* Period Filter */
@@ -566,19 +457,9 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .timeline-controls {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .timeline-controls select,
-      .timeline-controls button {
-        width: 100%;
-      }
-
-      .timeline-scroll-container {
-        margin: 0 calc(-1 * var(--space-3));
-        padding: 0 var(--space-3);
+      .timeline-days {
+        grid-template-columns: repeat(7, 1fr);
+        font-size: var(--fs-xs);
       }
 
       .period-filter {
@@ -622,15 +503,6 @@
 
     @keyframes spin {
       to { transform: rotate(360deg); }
-    }
-
-    /* Scroll hint */
-    .scroll-hint {
-      text-align: center;
-      font-size: var(--fs-xs);
-      color: var(--fg-3);
-      margin-top: var(--space-2);
-      font-style: italic;
     }
   </style>
 </head>
@@ -683,39 +555,11 @@
     <div class="timeline-header">
       <h2 id="timelineMonth">JANEIRO 2025</h2>
     </div>
-    
-    <!-- Timeline Controls -->
-    <div class="timeline-controls">
-      <button onclick="previousPeriod()">◀ Anterior</button>
-      
-      <label for="daysToShow">Mostrar:</label>
-      <select id="daysToShow" onchange="updateTimelineDays()">
-        <option value="3">3 dias</option>
-        <option value="5">5 dias</option>
-        <option value="7" selected>7 dias</option>
-        <option value="10">10 dias</option>
-        <option value="14">14 dias</option>
-        <option value="21">21 dias</option>
-        <option value="30">30 dias</option>
-      </select>
-      
-      <button onclick="goToToday()">Hoje</button>
-      <button onclick="nextPeriod()">Próximo ▶</button>
+    <div class="timeline-days" id="timelineDays">
+      <!-- Dias serão inseridos via JS -->
     </div>
-
-    <!-- Scroll Container -->
-    <div class="timeline-scroll-container" id="timelineScrollContainer">
-      <div class="timeline-content">
-        <div class="timeline-days" id="timelineDays">
-          <!-- Dias serão inseridos via JS -->
-        </div>
-        <div id="timelineProjects">
-          <!-- Projetos do timeline serão inseridos via JS -->
-        </div>
-      </div>
-    </div>
-    <div class="scroll-hint" id="scrollHint" style="display: none;">
-      ← Arraste horizontalmente para ver mais dias →
+    <div id="timelineProjects">
+      <!-- Projetos do timeline serão inseridos via JS -->
     </div>
   </div>
 
@@ -774,8 +618,6 @@
     let currentRegion = 'todas';
     let currentMonth = '';
     let currentYear = '';
-    let timelineStartDate = new Date();
-    timelineStartDate.setHours(0, 0, 0, 0);
 
     const N8N_WEBHOOK_URL = 'https://n8n.gaussenergia.com.br/webhook/gauss-obras';
 
@@ -853,32 +695,6 @@
         option.textContent = year;
         yearFilter.appendChild(option);
       });
-    }
-
-    // ==========================================
-    // TIMELINE NAVIGATION
-    // ==========================================
-
-    function updateTimelineDays() {
-      renderTimeline();
-    }
-
-    function previousPeriod() {
-      const daysToShow = parseInt(document.getElementById('daysToShow').value);
-      timelineStartDate.setDate(timelineStartDate.getDate() - daysToShow);
-      renderTimeline();
-    }
-
-    function nextPeriod() {
-      const daysToShow = parseInt(document.getElementById('daysToShow').value);
-      timelineStartDate.setDate(timelineStartDate.getDate() + daysToShow);
-      renderTimeline();
-    }
-
-    function goToToday() {
-      timelineStartDate = new Date();
-      timelineStartDate.setHours(0, 0, 0, 0);
-      renderTimeline();
     }
 
     // ==========================================
@@ -1080,56 +896,26 @@
     }
 
     function renderTimeline() {
-      const daysToShow = parseInt(document.getElementById('daysToShow').value);
-      const startDate = new Date(timelineStartDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
       
       const monthNames = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 
                          'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
       
-      // Atualizar título do mês
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + daysToShow - 1);
-      
-      let titleText = '';
-      if (startDate.getMonth() === endDate.getMonth()) {
-        titleText = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
-      } else {
-        titleText = `${monthNames[startDate.getMonth()]} - ${monthNames[endDate.getMonth()]} ${startDate.getFullYear()}`;
-      }
-      
-      document.getElementById('timelineMonth').textContent = titleText;
+      document.getElementById('timelineMonth').textContent = 
+        `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-      // Mostrar/ocultar hint de scroll
-      const scrollHint = document.getElementById('scrollHint');
-      if (daysToShow > 14) {
-        scrollHint.style.display = 'block';
-      } else {
-        scrollHint.style.display = 'none';
-      }
-
-      // ===== RENDER DIAS =====
+      // ===== RENDER PRÓXIMOS 7 DIAS =====
       const daysContainer = document.getElementById('timelineDays');
       const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
       
-      // Adicionar classe para muitos dias
-      if (daysToShow > 14) {
-        daysContainer.classList.add('many-days');
-      } else {
-        daysContainer.classList.remove('many-days');
-      }
-      
-      // Ajustar grid columns dinamicamente
-      daysContainer.style.gridTemplateColumns = `repeat(${daysToShow}, 1fr)`;
-      
       let daysHTML = '';
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
       
-      for (let i = 0; i < daysToShow; i++) {
-        const date = new Date(startDate);
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(now);
         date.setDate(date.getDate() + i);
         
-        const isToday = date.getTime() === today.getTime();
+        const isToday = i === 0;
         
         daysHTML += `
           <div class="timeline-day" style="${isToday ? 'background: var(--gauss-green-100); border: 2px solid var(--gauss-green);' : ''}">
@@ -1141,10 +927,10 @@
       }
       daysContainer.innerHTML = daysHTML;
 
-      // ===== FILTRAR PROJETOS PARA O PERÍODO =====
-      const periodEnd = new Date(startDate);
-      periodEnd.setDate(periodEnd.getDate() + daysToShow - 1);
-      periodEnd.setHours(23, 59, 59, 999);
+      // ===== RENDER PROJETOS =====
+      const weekEnd = new Date(now);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
 
       const projectsInPeriod = filteredProjects
         .filter(p => {
@@ -1155,28 +941,31 @@
           
           projectStart.setHours(0, 0, 0, 0);
           
-          // Determinar data de término
-          let projectEnd;
+          // Verificar se o projeto está finalizado
+          const status = (p.status || '').toLowerCase();
+          const isFinished = status.includes('finalizada') || status.includes('concluída');
+          
+          // Se tem data de término definida
           if (p.endDate) {
-            projectEnd = parseDateLocal(p.endDate);
-            if (!projectEnd || isNaN(projectEnd)) {
-              projectEnd = new Date(periodEnd);
-            }
-          } else {
-            const status = (p.status || '').toLowerCase();
-            const isFinished = status.includes('finalizada') || status.includes('concluída');
-            
-            if (isFinished) {
-              projectEnd = new Date(projectStart);
-            } else {
-              projectEnd = new Date(periodEnd);
+            const projectEnd = parseDateLocal(p.endDate);
+            if (projectEnd && !isNaN(projectEnd)) {
+              projectEnd.setHours(23, 59, 59, 999);
+              
+              // Mostrar se:
+              // 1. Começou antes/durante a semana E termina durante/depois do início da semana
+              return projectStart <= weekEnd && projectEnd >= now;
             }
           }
           
-          projectEnd.setHours(23, 59, 59, 999);
+          // Se NÃO está finalizado (em andamento ou programado)
+          if (!isFinished) {
+            // Mostrar se começou antes ou durante a semana
+            return projectStart <= weekEnd;
+          }
           
-          // Verificar se o projeto tem interseção com o período visível
-          return projectStart <= periodEnd && projectEnd >= startDate;
+          // Se está finalizado mas não tem data de término
+          // Mostrar apenas se começou durante a semana
+          return projectStart >= now && projectStart <= weekEnd;
         })
         .sort((a, b) => parseDateLocal(a.startDate) - parseDateLocal(b.startDate))
         .slice(0, 15);
@@ -1186,7 +975,7 @@
       if (projectsInPeriod.length === 0) {
         projectsContainer.innerHTML = `
           <p style="text-align: center; color: var(--fg-3); padding: var(--space-4);">
-            Nenhum projeto programado para este período.
+            Nenhum projeto programado para esta semana.
           </p>
         `;
         return;
@@ -1195,52 +984,54 @@
       console.log('📅 Projetos na timeline:', projectsInPeriod.map(p => ({
         id: p.id,
         client: p.client,
+        team: p.team,
         startDate: p.startDate,
         endDate: p.endDate,
         status: p.status
       })));
 
-      // ===== RENDER PROJETOS =====
+      // ===== RENDER BARRAS DE PROJETO =====
       projectsContainer.innerHTML = projectsInPeriod.map(p => {
         const projectStart = parseDateLocal(p.startDate);
         projectStart.setHours(0, 0, 0, 0);
         
-        // Calcular data de término
+        const status = (p.status || '').toLowerCase();
+        const isFinished = status.includes('finalizada') || status.includes('concluída');
+        
+        // Calcular data de término para exibição
         let projectEnd;
         if (p.endDate) {
           projectEnd = parseDateLocal(p.endDate);
           if (!projectEnd || isNaN(projectEnd)) {
-            projectEnd = new Date(periodEnd);
+            projectEnd = new Date(weekEnd);
           }
+        } else if (!isFinished) {
+          // Se não está finalizado e não tem data, vai até o fim da semana
+          projectEnd = new Date(weekEnd);
         } else {
-          const status = (p.status || '').toLowerCase();
-          const isFinished = status.includes('finalizada') || status.includes('concluída');
-          
-          if (isFinished) {
-            projectEnd = new Date(projectStart);
-          } else {
-            projectEnd = new Date(periodEnd);
-          }
+          // Se está finalizado mas não tem data, mostrar só no dia de início
+          projectEnd = new Date(projectStart);
         }
         
         projectEnd.setHours(0, 0, 0, 0);
         
-        // Calcular posicionamento no grid
-        const dayStart = Math.max(0, Math.floor((projectStart - startDate) / (1000 * 60 * 60 * 24)));
-        const dayEnd = Math.min(daysToShow - 1, Math.floor((projectEnd - startDate) / (1000 * 60 * 60 * 24)));
+        // Calcular posição no grid (começando do dia atual)
+        let dayStart = Math.floor((projectStart - now) / (1000 * 60 * 60 * 24));
+        
+        // Se começou antes da semana atual, começar do dia 0 (hoje)
+        if (dayStart < 0) {
+          dayStart = 0;
+        }
+        
+        const dayEnd = Math.min(6, Math.floor((projectEnd - now) / (1000 * 60 * 60 * 24)));
         
         const gridColumnStart = dayStart + 1;
         const gridColumnEnd = dayEnd + 2;
         
-        // Ajustar tamanho do texto baseado no número de dias
-        const fontSize = daysToShow > 14 ? 'var(--fs-xs)' : 'var(--fs-xs)';
-        const padding = daysToShow > 14 ? 'var(--space-1) var(--space-2)' : 'var(--space-2) var(--space-3)';
-        
         // Truncar nome do cliente
         const clientName = p.client || 'Cliente não informado';
-        const maxLength = daysToShow > 14 ? 20 : 25;
-        const shortClientName = clientName.length > maxLength 
-          ? clientName.substring(0, maxLength) + '...' 
+        const shortClientName = clientName.length > 25 
+          ? clientName.substring(0, 25) + '...' 
           : clientName;
         
         const teamName = p.team || 'Não informada';
@@ -1248,20 +1039,25 @@
         // Definir cor baseada no status
         let bgColor = 'var(--gauss-green-100)';
         let borderColor = 'var(--gauss-green)';
-        const status = (p.status || '').toLowerCase();
         
-        if (status.includes('finalizada') || status.includes('concluída')) {
+        if (isFinished) {
           bgColor = '#E6F5EA';
           borderColor = '#1B5D24';
         } else if (status.includes('pendencia')) {
           bgColor = '#FEE';
           borderColor = '#B91C1C';
+        } else if (status.includes('andamento')) {
+          bgColor = '#FFF4E6';
+          borderColor = '#B45F06';
         }
+        
+        // Indicador se começou antes
+        const startedBefore = projectStart < now;
         
         return `
           <div class="timeline-project-row" style="
             display: grid;
-            grid-template-columns: repeat(${daysToShow}, 1fr);
+            grid-template-columns: repeat(7, 1fr);
             gap: var(--space-2);
             margin-bottom: var(--space-3);
           ">
@@ -1269,25 +1065,27 @@
               grid-column: ${gridColumnStart} / ${gridColumnEnd};
               background: ${bgColor};
               border-left: 3px solid ${borderColor};
+              ${startedBefore ? 'border-left-style: dashed;' : ''}
               border-radius: var(--radius-sm);
-              padding: ${padding};
+              padding: var(--space-2) var(--space-3);
               position: relative;
               transition: all 0.2s;
               cursor: pointer;
-              min-height: ${daysToShow > 14 ? '50px' : '60px'};
             " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-sm)'" 
                onmouseout="this.style.transform=''; this.style.boxShadow=''"
-               title="${clientName} - ${teamName} | ${formatDate(p.startDate)} - ${p.endDate ? formatDate(p.endDate) : 'Em andamento'}">
+               title="${clientName} - ${teamName}${startedBefore ? ' | Iniciado em ' + formatDate(p.startDate) : ''} ${p.endDate ? '| Término: ' + formatDate(p.endDate) : '| Em andamento'}">
               
+              <!-- Linha 1: Código + Cliente -->
               <div style="
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                margin-bottom: ${daysToShow > 14 ? '2px' : '4px'};
+                margin-bottom: 4px;
               ">
+                ${startedBefore ? '<span style="font-size: 12px;">◀</span>' : ''}
                 <span style="
                   font-family: var(--font-mono);
-                  font-size: ${fontSize};
+                  font-size: var(--fs-xs);
                   font-weight: 700;
                   color: ${borderColor};
                   white-space: nowrap;
@@ -1295,7 +1093,7 @@
                   ${p.id || 'S/N'}
                 </span>
                 <span style="
-                  font-size: ${fontSize};
+                  font-size: var(--fs-xs);
                   color: var(--fg-1);
                   font-weight: 600;
                   white-space: nowrap;
@@ -1306,8 +1104,9 @@
                 </span>
               </div>
               
+              <!-- Linha 2: Equipe -->
               <div style="
-                font-size: ${fontSize};
+                font-size: var(--fs-xs);
                 color: var(--fg-2);
                 margin-bottom: 2px;
                 white-space: nowrap;
@@ -1317,15 +1116,14 @@
                 👷 ${teamName}
               </div>
               
-              ${daysToShow <= 14 ? `
-                <div style="
-                  font-size: ${fontSize};
-                  color: var(--fg-3);
-                  font-style: italic;
-                ">
-                  ${p.status || 'Sem status'}${!p.endDate && !status.includes('finalizada') ? ' • Em andamento' : ''}
-                </div>
-              ` : ''}
+              <!-- Linha 3: Status -->
+              <div style="
+                font-size: var(--fs-xs);
+                color: var(--fg-3);
+                font-style: italic;
+              ">
+                ${p.status || 'Sem status'}${!p.endDate && !isFinished ? ' • Em andamento' : ''}
+              </div>
             </div>
           </div>
         `;
@@ -1369,8 +1167,10 @@
 
     function applyFilters(searchQuery = '') {
       filteredProjects = projectsData.filter(project => {
+        // Filter by region
         const regionMatch = currentRegion === 'todas' || project.region === currentRegion;
         
+        // Filter by period
         let periodMatch = true;
         if (currentMonth || currentYear) {
           if (project.startDate) {
@@ -1387,6 +1187,7 @@
           }
         }
         
+        // Filter by search
         const searchLower = searchQuery.toLowerCase();
         const searchMatch = !searchQuery || 
           (project.id || '').toLowerCase().includes(searchLower) ||
@@ -1418,6 +1219,7 @@
 
     loadData();
 
+    // Atualizar automaticamente a cada 5 minutos
     setInterval(() => {
       console.log('🔄 Atualizando dados automaticamente...');
       loadData();
